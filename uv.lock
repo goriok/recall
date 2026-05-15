@@ -601,6 +601,7 @@ name = "recall"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "httpx" },
     { name = "ollama" },
     { name = "python-dotenv" },
     { name = "qdrant-client" },
@@ -616,6 +617,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "httpx", specifier = ">=0.27" },
     { name = "ollama", specifier = ">=0.2" },
     { name = "python-dotenv", specifier = ">=1.0" },
     { name = "qdrant-client", specifier = ">=1.9" },

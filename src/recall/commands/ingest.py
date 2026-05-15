@@ -7,6 +7,7 @@ from rich.progress import track
 
 from recall.config import find_config, load_config, ConfigError
 from recall.indexer import index_project
+from recall.qdrant_guard import ensure_qdrant
 
 console = Console()
 
@@ -22,6 +23,8 @@ def ingest(
     except ConfigError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    ensure_qdrant(config.qdrant.url)
 
     if all_projects:
         projects = config.projects

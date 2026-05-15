@@ -8,6 +8,7 @@ from rich.text import Text
 
 from recall.config import find_config, load_config, ConfigError
 from recall.searcher import semantic_search
+from recall.qdrant_guard import ensure_qdrant
 
 console = Console()
 
@@ -24,6 +25,8 @@ def search(
     except ConfigError as e:
         console.print(f"[red]Error:[/red] {e}")
         raise typer.Exit(1)
+
+    ensure_qdrant(config.qdrant.url)
 
     results = semantic_search(query, config=config, collection=collection, top_k=top_k)
 
