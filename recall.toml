@@ -1,0 +1,26 @@
+[qdrant]
+host = "localhost"
+port = 6333
+
+[embedding]
+model = "nomic-embed-text"
+provider = "ollama"
+ollama_host = "http://localhost:11434"
+
+[[projects]]
+name = "mcx-companion"
+path = "~/sources/mcx-companion/docs"
+collection = "mcx-companion"
+glob = "**/*.md"
+
+[[projects]]
+name = "my-cluster"
+path = "~/sources/my-cluster"
+collection = "my-cluster"
+glob = "**/*.md"
+
+[[projects]]
+name = "distill-rss"
+path = "~/sources/distill-rss/docs"
+collection = "distill-rss"
+glob = "**/*.md"
