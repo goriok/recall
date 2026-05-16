@@ -28,7 +28,14 @@ def index_project(
         )
 
     source_path = project.resolved_path
-    files = list(source_path.glob(project.glob))
+    if not source_path.exists():
+        return 0
+
+    blocked = set(project.path_exclude)
+    files = [
+        f for f in source_path.glob(project.glob)
+        if not any(part in blocked for part in f.parts)
+    ]
 
     all_chunks = []
     for file in files:
@@ -60,7 +67,9 @@ def index_project(
         for c, v in zip(all_chunks, vectors)
     ]
 
-    client.upsert(collection_name=project.collection, points=points)
+    batch_size = 100
+    for i in range(0, len(points), batch_size):
+        client.upsert(collection_name=project.collection, points=points[i : i + batch_size])
     return len(points)
 
 

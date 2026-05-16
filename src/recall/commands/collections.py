@@ -34,7 +34,7 @@ def collections_list():
 
     for col in sorted(cols, key=lambda c: c.name):
         info = client.get_collection(col.name)
-        count = info.vectors_count or 0
+        count = info.points_count or 0
         table.add_row(col.name, str(count))
 
     console.print(table)

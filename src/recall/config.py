@@ -26,12 +26,27 @@ class EmbeddingConfig:
     ollama_host: str = "http://localhost:11434"
 
 
+_DEFAULT_PATH_EXCLUDE: list[str] = [
+    "node_modules",
+    ".venv",
+    ".git",
+    "__pycache__",
+    ".pytest_cache",
+    ".mypy_cache",
+    "dist",
+    "build",
+    ".tox",
+    ".eggs",
+]
+
+
 @dataclass
 class ProjectConfig:
     name: str
     path: str
     collection: str
     glob: str = "**/*.md"
+    path_exclude: list[str] = field(default_factory=lambda: list(_DEFAULT_PATH_EXCLUDE))
 
     @property
     def resolved_path(self) -> Path:
@@ -43,6 +58,7 @@ class SourceConfig:
     root: str
     glob: str = "**/*.md"
     exclude: list[str] = field(default_factory=list)
+    path_exclude: list[str] = field(default_factory=lambda: list(_DEFAULT_PATH_EXCLUDE))
 
     @property
     def resolved_root(self) -> Path:
@@ -87,6 +103,7 @@ class Config:
                         path=str(subdir),
                         collection=subdir.name,
                         glob=source.glob,
+                        path_exclude=list(source.path_exclude),
                     )
                 )
 
@@ -125,6 +142,7 @@ def load_config(config_path: Path) -> Config:
             path=p["path"],
             collection=p["collection"],
             glob=p.get("glob", "**/*.md"),
+            path_exclude=p.get("path_exclude", list(_DEFAULT_PATH_EXCLUDE)),
         )
         for p in data.get("projects", [])
     ]
@@ -134,6 +152,7 @@ def load_config(config_path: Path) -> Config:
             root=s["root"],
             glob=s.get("glob", "**/*.md"),
             exclude=s.get("exclude", []),
+            path_exclude=s.get("path_exclude", list(_DEFAULT_PATH_EXCLUDE)),
         )
         for s in data.get("sources", [])
     ]

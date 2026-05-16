@@ -9,11 +9,11 @@ runner = CliRunner()
 FAKE_CONFIG = Config(qdrant=QdrantConfig(), embedding=EmbeddingConfig(), projects=[])
 
 
-def _mock_collection(name: str, vectors_count: int = 10):
+def _mock_collection(name: str, points_count: int = 10):
     col = MagicMock()
     col.name = name
     info = MagicMock()
-    info.vectors_count = vectors_count
+    info.points_count = points_count
     return col, info
 
 

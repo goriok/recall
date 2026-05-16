@@ -63,6 +63,27 @@ def test_load_config_embedding_defaults(tmp_path):
     assert cfg.embedding.provider == "ollama"
 
 
+def test_project_config_has_default_path_exclude(tmp_path):
+    toml = tmp_path / "recall.toml"
+    toml.write_text('[[projects]]\nname = "x"\npath = "~/x"\ncollection = "x"\n')
+    cfg = load_config(toml)
+    assert "node_modules" in cfg.projects[0].path_exclude
+    assert ".git" in cfg.projects[0].path_exclude
+
+
+def test_source_config_propagates_path_exclude_to_discovered(tmp_path):
+    proj_dir = tmp_path / "myproject"
+    proj_dir.mkdir()
+    (proj_dir / "README.md").write_text("# Hello")
+
+    toml = tmp_path / "recall.toml"
+    toml.write_text(f'[[sources]]\nroot = "{tmp_path}"\nglob = "**/*.md"\n')
+    cfg = load_config(toml)
+    projects = cfg.discover_projects()
+    assert len(projects) == 1
+    assert "node_modules" in projects[0].path_exclude
+
+
 def test_load_config_embedding_custom(tmp_path):
     toml = tmp_path / "recall.toml"
     toml.write_text(
