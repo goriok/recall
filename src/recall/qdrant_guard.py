@@ -32,12 +32,12 @@ def ensure_qdrant(qdrant_url: str) -> None:
 
     try:
         subprocess.run(
-            ["docker", "compose", "-f", str(compose_file), "up", "-d"],
+            ["podman", "compose", "-f", str(compose_file), "up", "-d"],
             check=True,
             capture_output=True,
         )
     except FileNotFoundError:
-        console.print("[red]Error:[/red] Docker not found. Install Docker Desktop and try again.")
+        console.print("[red]Error:[/red] Podman not found. Install Podman and try again.")
         raise typer.Exit(1)
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Error:[/red] Failed to start Qdrant:\n{e.stderr.decode()}")

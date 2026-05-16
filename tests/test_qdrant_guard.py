@@ -26,7 +26,7 @@ def test_ensure_qdrant_starts_docker_when_not_reachable(tmp_path):
 
     mock_run.assert_called_once()
     args = mock_run.call_args[0][0]
-    assert "docker" in args
+    assert "podman" in args
     assert "up" in args
 
 
