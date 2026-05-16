@@ -75,3 +75,29 @@ def test_index_project_returns_zero_for_nonexistent_path():
     project = ProjectConfig(name="ghost", path="/nonexistent", collection="ghost")
     count = index_project(project, config=_make_config())
     assert count == 0
+
+
+def test_index_project_stores_absolute_source_path(tmp_path):
+    """source in payload must be the absolute file path, not relative."""
+    (tmp_path / "guide.md").write_text("# Guide\n\nContent here.")
+
+    project = ProjectConfig(
+        name="test",
+        path=str(tmp_path),
+        collection="test",
+    )
+
+    with patch("recall.indexer.embed_batch", side_effect=lambda texts, **kw: [[0.1] * 768 for _ in texts]), \
+         patch("recall.indexer.QdrantClient") as mock_qdrant, \
+         patch("recall.indexer._collection_exists", return_value=True):
+        mock_client = MagicMock()
+        mock_qdrant.return_value = mock_client
+        index_project(project, config=_make_config())
+
+    all_sources = [
+        pt.payload["source"]
+        for call in mock_client.upsert.call_args_list
+        for pt in call.kwargs["points"]
+    ]
+    expected = str(tmp_path / "guide.md")
+    assert any(s == expected for s in all_sources)

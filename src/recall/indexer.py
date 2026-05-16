@@ -41,8 +41,7 @@ def index_project(
     for file in files:
         try:
             text = file.read_text(encoding="utf-8")
-            rel = str(file.relative_to(source_path))
-            chunks = chunk_markdown(text, source=rel, collection=project.collection)
+            chunks = chunk_markdown(text, source=str(file.resolve()), collection=project.collection)
             all_chunks.extend(chunks)
         except Exception:
             continue

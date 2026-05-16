@@ -8,7 +8,7 @@ import httpx
 import typer
 from rich.console import Console
 
-console = Console()
+console = Console(stderr=True)
 
 # docker-compose.yml lives next to recall.toml (project root)
 _COMPOSE_FILE = Path(__file__).parent.parent.parent / "docker-compose.yml"

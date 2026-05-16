@@ -62,6 +62,24 @@ def test_ingest_calls_indexer_for_project(tmp_path):
     assert call_args[0][0] == project
 
 
+def test_ingest_skips_missing_path(tmp_path):
+    project = ProjectConfig(
+        name="ghost",
+        path="/nonexistent/path",
+        collection="ghost",
+    )
+    config = Config(qdrant=QdrantConfig(), embedding=EmbeddingConfig(), projects=[project])
+
+    with patch("recall.commands.ingest.find_config", return_value=Path("/fake/recall.toml")), \
+         patch("recall.commands.ingest.load_config", return_value=config), \
+         patch("recall.commands.ingest.index_project") as mock_index:
+        result = runner.invoke(app, ["ingest", "--all"])
+
+    assert result.exit_code == 0
+    mock_index.assert_not_called()
+    assert "skipping" in result.output
+
+
 def test_ingest_all_calls_indexer_for_each_project(tmp_path):
     config = Config(
         qdrant=QdrantConfig(),
