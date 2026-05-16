@@ -39,16 +39,64 @@ class ProjectConfig:
 
 
 @dataclass
+class SourceConfig:
+    root: str
+    glob: str = "**/*.md"
+    exclude: list[str] = field(default_factory=list)
+
+    @property
+    def resolved_root(self) -> Path:
+        return Path(self.root).expanduser()
+
+
+@dataclass
 class Config:
     qdrant: QdrantConfig = field(default_factory=QdrantConfig)
     embedding: EmbeddingConfig = field(default_factory=EmbeddingConfig)
     projects: list[ProjectConfig] = field(default_factory=list)
+    sources: list[SourceConfig] = field(default_factory=list)
 
     def project(self, name: str) -> ProjectConfig:
-        for p in self.projects:
+        for p in self.all_projects():
             if p.name == name:
                 return p
         raise ConfigError(f"unknown project '{name}' — check recall.toml")
+
+    def discover_projects(self) -> list[ProjectConfig]:
+        """Auto-discover projects from [[sources]] entries."""
+        explicit_names = {p.name for p in self.projects}
+        discovered: list[ProjectConfig] = []
+
+        for source in self.sources:
+            root = source.resolved_root
+            if not root.exists():
+                continue
+            for subdir in sorted(root.iterdir()):
+                if not subdir.is_dir():
+                    continue
+                if subdir.name in source.exclude:
+                    continue
+                if subdir.name in explicit_names:
+                    continue
+                # only include if there are matching files
+                if not any(subdir.glob(source.glob)):
+                    continue
+                discovered.append(
+                    ProjectConfig(
+                        name=subdir.name,
+                        path=str(subdir),
+                        collection=subdir.name,
+                        glob=source.glob,
+                    )
+                )
+
+        return discovered
+
+    def all_projects(self) -> list[ProjectConfig]:
+        """Explicit projects + auto-discovered, with explicit taking precedence."""
+        explicit_names = {p.name for p in self.projects}
+        discovered = [p for p in self.discover_projects() if p.name not in explicit_names]
+        return self.projects + discovered
 
 
 def load_config(config_path: Path) -> Config:
@@ -81,7 +129,16 @@ def load_config(config_path: Path) -> Config:
         for p in data.get("projects", [])
     ]
 
-    return Config(qdrant=qdrant, embedding=embedding, projects=projects)
+    sources = [
+        SourceConfig(
+            root=s["root"],
+            glob=s.get("glob", "**/*.md"),
+            exclude=s.get("exclude", []),
+        )
+        for s in data.get("sources", [])
+    ]
+
+    return Config(qdrant=qdrant, embedding=embedding, projects=projects, sources=sources)
 
 
 _GLOBAL_CONFIG = Path.home() / ".config" / "recall" / "recall.toml"

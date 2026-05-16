@@ -7,20 +7,27 @@ model = "nomic-embed-text"
 provider = "ollama"
 ollama_host = "http://localhost:11434"
 
+# projetos explícitos — path e collection customizados
 [[projects]]
 name = "mcx-companion"
 path = "~/sources/mcx-companion/docs"
 collection = "mcx-companion"
 glob = "**/*.md"
 
-[[projects]]
-name = "my-cluster"
-path = "~/sources/my-cluster"
-collection = "my-cluster"
+# auto-discover — cada subdir de ~/sources vira uma collection
+[[sources]]
+root = "~/sources"
 glob = "**/*.md"
-
-[[projects]]
-name = "distill-rss"
-path = "~/sources/distill-rss/docs"
-collection = "distill-rss"
-glob = "**/*.md"
+exclude = [
+  "node_modules",
+  ".venv",
+  "dist",
+  "__pycache__",
+  ".git",
+  "recall",        # evita auto-indexar o próprio projeto recall
+  "codecompanion-history",
+  "bkp",
+  "obsidian",
+  "litellm",
+  "opencode",
+]
