@@ -5,3 +5,7 @@ dist/
 .env
 .coverage
 htmlcov/
+# override global gitignore to track opencode slash commands
+!.opencode/
+!.opencode/commands/
+!.opencode/commands/*.md
