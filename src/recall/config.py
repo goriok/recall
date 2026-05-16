@@ -37,6 +37,8 @@ _DEFAULT_PATH_EXCLUDE: list[str] = [
     "build",
     ".tox",
     ".eggs",
+    ".opencode",
+    ".claude",
 ]
 
 
