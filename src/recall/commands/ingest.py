@@ -15,6 +15,7 @@ console = Console()
 def ingest(
     project_name: Optional[str] = typer.Argument(None, help="Project name from recall.toml"),
     all_projects: bool = typer.Option(False, "--all", help="Ingest all configured projects"),
+    recreate: bool = typer.Option(False, "--recreate", help="Drop and recreate collection before indexing"),
 ):
     """Index project docs into Qdrant."""
     try:
@@ -27,7 +28,7 @@ def ingest(
     ensure_qdrant(config.qdrant.url)
 
     if all_projects:
-        projects = config.projects
+        projects = config.all_projects()
     elif project_name:
         try:
             projects = [config.project(project_name)]
@@ -39,5 +40,8 @@ def ingest(
         raise typer.Exit(1)
 
     for project in track(projects, description="Indexing..."):
-        count = index_project(project, config=config)
+        if not project.resolved_path.exists():
+            console.print(f"[yellow]⚠[/yellow] {project.name}: path not found, skipping ({project.path})")
+            continue
+        count = index_project(project, config=config, recreate=recreate)
         console.print(f"[green]✓[/green] {project.name}: {count} chunks indexed")

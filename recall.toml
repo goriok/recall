@@ -31,3 +31,14 @@ exclude = [
   "litellm",
   "opencode",
 ]
+
+[[sources]]
+root = "~/analysis"
+glob = "**/*.md"
+exclude = [
+  "node_modules",
+  ".venv",
+  "dist",
+  "__pycache__",
+  ".git",
+]
