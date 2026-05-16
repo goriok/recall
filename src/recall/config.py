@@ -84,11 +84,19 @@ def load_config(config_path: Path) -> Config:
     return Config(qdrant=qdrant, embedding=embedding, projects=projects)
 
 
+_GLOBAL_CONFIG = Path.home() / ".config" / "recall" / "recall.toml"
+
+
 def find_config() -> Path:
-    """Walk up from CWD looking for recall.toml."""
+    """Walk up from CWD looking for recall.toml, then fall back to ~/.config/recall/recall.toml."""
     current = Path.cwd()
     for directory in [current, *current.parents]:
         candidate = directory / "recall.toml"
         if candidate.exists():
             return candidate
-    raise ConfigError("recall.toml not found — run from inside a recall project or pass --config")
+    if _GLOBAL_CONFIG.exists():
+        return _GLOBAL_CONFIG
+    raise ConfigError(
+        "recall.toml not found — run from inside a recall project, "
+        "or place a global config at ~/.config/recall/recall.toml"
+    )

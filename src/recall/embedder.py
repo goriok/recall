@@ -7,11 +7,8 @@ from recall.config import EmbeddingConfig
 
 def embed(text: str, *, config: EmbeddingConfig) -> list[float]:
     """Generate an embedding vector for text using Ollama."""
-    response = ollama.embeddings(
-        model=config.model,
-        prompt=text,
-        options={"host": config.ollama_host} if config.ollama_host != "http://localhost:11434" else {},
-    )
+    client = ollama.Client(host=config.ollama_host)
+    response = client.embeddings(model=config.model, prompt=text)
     return response["embedding"]
 
 

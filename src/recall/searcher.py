@@ -34,13 +34,13 @@ def semantic_search(
     results: list[SearchResult] = []
     for col in collections:
         try:
-            hits = client.search(
+            response = client.query_points(
                 collection_name=col,
-                query_vector=vector,
+                query=vector,
                 limit=top_k,
                 with_payload=True,
             )
-            for hit in hits:
+            for hit in response.points:
                 payload = hit.payload or {}
                 results.append(
                     SearchResult(
