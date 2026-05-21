@@ -65,3 +65,55 @@ def test_dispatch_raises_for_unknown_job():
 
     with pytest.raises(ValueError, match="unknown job"):
         dispatch(entry)
+
+
+# --- local:* dispatch ---
+
+def test_dispatch_local_all_calls_core():
+    entry = make_entry("local:all")
+
+    with patch("recall.scheduler.jobs._run_local_ingest") as mock_run:
+        mock_run.return_value = "3 project(s) indexed, 90 chunks total"
+        result = dispatch(entry)
+
+    mock_run.assert_called_once()
+    call_kwargs = mock_run.call_args[1]
+    assert call_kwargs["mode"] == "all"
+    assert call_kwargs["params"] == {}
+    assert "project(s) indexed" in result
+
+
+def test_dispatch_local_project_calls_core():
+    entry = make_entry("local:project", project="recall")
+
+    with patch("recall.scheduler.jobs._run_local_ingest") as mock_run:
+        mock_run.return_value = "1 project(s) indexed, 42 chunks total"
+        dispatch(entry)
+
+    call_kwargs = mock_run.call_args[1]
+    assert call_kwargs["mode"] == "project"
+    assert call_kwargs["params"]["project"] == "recall"
+
+
+def test_dispatch_local_source_calls_core():
+    entry = make_entry("local:source", source="~/sources")
+
+    with patch("recall.scheduler.jobs._run_local_ingest") as mock_run:
+        mock_run.return_value = "5 project(s) indexed, 200 chunks total"
+        dispatch(entry)
+
+    call_kwargs = mock_run.call_args[1]
+    assert call_kwargs["mode"] == "source"
+    assert call_kwargs["params"]["source"] == "~/sources"
+
+
+def test_dispatch_local_does_not_call_confluence_core():
+    entry = make_entry("local:all")
+
+    with (
+        patch("recall.scheduler.jobs._run_local_ingest", return_value="ok"),
+        patch("recall.scheduler.jobs._run_confluence_ingest") as mock_cf,
+    ):
+        dispatch(entry)
+
+    mock_cf.assert_not_called()

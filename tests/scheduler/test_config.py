@@ -133,3 +133,46 @@ def test_optional_collection_param():
     }
     entries = parse_schedules(data)
     assert entries[0].params["collection"] == "my-col"
+
+
+# --- local job types ---
+
+def test_parse_local_all_no_required_params():
+    data = {"schedules": [{"name": "local-all", "cron": "30 */3 * * *", "job": "local:all"}]}
+    entries = parse_schedules(data)
+    assert len(entries) == 1
+    assert entries[0].job == "local:all"
+    assert entries[0].params == {}
+
+
+def test_parse_local_all_with_optional_recreate():
+    data = {"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:all", "recreate": True}]}
+    entries = parse_schedules(data)
+    assert entries[0].params["recreate"] is True
+
+
+def test_parse_local_project_with_project_param():
+    data = {"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:project", "project": "recall"}]}
+    entries = parse_schedules(data)
+    assert entries[0].params["project"] == "recall"
+
+
+def test_parse_local_source_with_source_param():
+    data = {"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:source", "source": "~/sources"}]}
+    entries = parse_schedules(data)
+    assert entries[0].params["source"] == "~/sources"
+
+
+def test_parse_local_project_without_project_raises():
+    with pytest.raises(ScheduleConfigError, match="project"):
+        parse_schedules({"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:project"}]})
+
+
+def test_parse_local_source_without_source_raises():
+    with pytest.raises(ScheduleConfigError, match="source"):
+        parse_schedules({"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:source"}]})
+
+
+def test_parse_local_unknown_subtype_raises():
+    with pytest.raises(ScheduleConfigError, match="unknown job"):
+        parse_schedules({"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:unknown"}]})

@@ -8,6 +8,9 @@ _KNOWN_JOBS = {
     "confluence:folder",
     "confluence:space",
     "confluence:label",
+    "local:all",
+    "local:project",
+    "local:source",
 }
 
 _REQUIRED_PARAMS: dict[str, str] = {
@@ -15,9 +18,11 @@ _REQUIRED_PARAMS: dict[str, str] = {
     "confluence:folder": "folder_id",
     "confluence:space": "space",
     "confluence:label": "label",
+    "local:project": "project",
+    "local:source": "source",
 }
 
-_PARAM_KEYS = {"page_id", "folder_id", "space", "label", "collection", "recreate"}
+_PARAM_KEYS = {"page_id", "folder_id", "space", "label", "collection", "recreate", "project", "source"}
 
 
 class ScheduleConfigError(Exception):
@@ -51,8 +56,8 @@ def parse_schedules(data: dict) -> list[ScheduleEntry]:
                 f"Valid values: {sorted(_KNOWN_JOBS)}"
             )
 
-        required_param = _REQUIRED_PARAMS[job]
-        if required_param not in item:
+        required_param = _REQUIRED_PARAMS.get(job)
+        if required_param and required_param not in item:
             raise ScheduleConfigError(
                 f"schedule '{item['name']}' (job={job}): missing required param '{required_param}'"
             )

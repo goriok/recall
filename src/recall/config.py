@@ -117,6 +117,38 @@ class Config:
         discovered = [p for p in self.discover_projects() if p.name not in explicit_names]
         return self.projects + discovered
 
+    def projects_from_source(self, root: str) -> list[ProjectConfig]:
+        """Auto-discover projects from a specific [[sources]] root (resolves ~)."""
+        target = Path(root).expanduser().resolve()
+        explicit_names = {p.name for p in self.projects}
+        result: list[ProjectConfig] = []
+
+        for source in self.sources:
+            if source.resolved_root.resolve() != target:
+                continue
+            if not source.resolved_root.exists():
+                continue
+            for subdir in sorted(source.resolved_root.iterdir()):
+                if not subdir.is_dir():
+                    continue
+                if subdir.name in source.exclude:
+                    continue
+                if subdir.name in explicit_names:
+                    continue
+                if not any(subdir.glob(source.glob)):
+                    continue
+                result.append(
+                    ProjectConfig(
+                        name=subdir.name,
+                        path=str(subdir),
+                        collection=subdir.name,
+                        glob=source.glob,
+                        path_exclude=list(source.path_exclude),
+                    )
+                )
+
+        return result
+
 
 def load_config(config_path: Path) -> Config:
     if not config_path.exists():
