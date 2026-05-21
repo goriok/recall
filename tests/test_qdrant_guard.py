@@ -64,3 +64,39 @@ def test_wait_until_ready_returns_false_on_timeout():
     with patch("recall.qdrant_guard._is_reachable", return_value=False), \
          patch("recall.qdrant_guard.time.sleep"):
         assert _wait_until_ready("http://localhost:6333", timeout=1) is False
+
+
+# --- RECALL_IN_CONTAINER bypass ---
+
+def test_in_container_unreachable_raises_exit_without_podman(monkeypatch):
+    monkeypatch.setenv("RECALL_IN_CONTAINER", "1")
+    with patch("recall.qdrant_guard._is_reachable", return_value=False), \
+         patch("recall.qdrant_guard.subprocess.run") as mock_run:
+        with pytest.raises(Exception):  # typer.Exit
+            ensure_qdrant("http://qdrant:6333")
+    mock_run.assert_not_called()
+
+
+def test_in_container_reachable_returns_normally(monkeypatch):
+    monkeypatch.setenv("RECALL_IN_CONTAINER", "1")
+    with patch("recall.qdrant_guard._is_reachable", return_value=True), \
+         patch("recall.qdrant_guard.subprocess.run") as mock_run:
+        ensure_qdrant("http://qdrant:6333")
+    mock_run.assert_not_called()
+
+
+def test_not_in_container_still_tries_podman(monkeypatch):
+    monkeypatch.delenv("RECALL_IN_CONTAINER", raising=False)
+    import tempfile, os
+    from pathlib import Path
+    with tempfile.TemporaryDirectory() as tmp:
+        compose = Path(tmp) / "docker-compose.yml"
+        compose.write_text("services:\n  qdrant:\n    image: qdrant/qdrant\n")
+        (Path(tmp) / "recall.toml").write_text("")
+        with patch("recall.qdrant_guard._is_reachable", return_value=False), \
+             patch("recall.qdrant_guard._find_compose_file", return_value=compose), \
+             patch("recall.qdrant_guard._wait_until_ready", return_value=True), \
+             patch("recall.qdrant_guard.subprocess.run") as mock_run:
+            ensure_qdrant("http://localhost:6333")
+    mock_run.assert_called_once()
+    assert "podman" in mock_run.call_args[0][0]

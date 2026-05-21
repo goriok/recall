@@ -7,6 +7,31 @@ services:
     volumes:
       - qdrant_data:/qdrant/storage
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:6333/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  recall-scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: recall-scheduler:local
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    env_file:
+      - ${HOME}/.config/recall/.env
+    volumes:
+      - ${HOME}/.config/recall/recall.container.toml:/config/recall.toml:ro
+      - ${HOME}/sources:/sources:ro
+      - ${HOME}/analysis:/analysis:ro
+      - recall_logs:/home/recall/.cache/recall/logs
+    restart: unless-stopped
 
 volumes:
   qdrant_data:
+  recall_logs:

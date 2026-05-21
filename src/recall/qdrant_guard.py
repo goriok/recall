@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -19,6 +20,13 @@ def ensure_qdrant(qdrant_url: str) -> None:
     """Ensure Qdrant is reachable, starting it via Docker Compose if needed."""
     if _is_reachable(qdrant_url):
         return
+
+    if os.environ.get("RECALL_IN_CONTAINER") == "1":
+        console.print(
+            f"[red]Error:[/red] Qdrant unreachable at {qdrant_url}. "
+            "Check that the 'qdrant' service is healthy (docker compose ps)."
+        )
+        raise typer.Exit(1)
 
     console.print("[dim]Qdrant not running — starting via Docker Compose...[/dim]")
 

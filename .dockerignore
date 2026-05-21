@@ -1,0 +1,14 @@
+.git
+.claude
+.opencode
+.venv
+__pycache__
+*.pyc
+*.pyo
+tests
+htmlcov
+.coverage
+dist
+build
+*.egg-info
+.env
