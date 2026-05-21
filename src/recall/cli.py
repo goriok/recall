@@ -4,6 +4,7 @@ from recall.commands.ingest_confluence import ingest_confluence
 from recall.commands.search import search
 from recall.commands.collections import collections_list, collections_drop
 from recall.commands.server import server_start, server_stop, server_restart, server_status, server_logs
+from recall.commands.scheduler import scheduler_run, scheduler_list, scheduler_trigger
 
 app = typer.Typer(name="recall", help="Local semantic search over your project docs.")
 
@@ -19,6 +20,12 @@ server_app.command("stop")(server_stop)
 server_app.command("restart")(server_restart)
 server_app.command("status")(server_status)
 server_app.command("logs")(server_logs)
+
+scheduler_app = typer.Typer(help="Manage ingest schedules.")
+app.add_typer(scheduler_app, name="scheduler")
+scheduler_app.command("run")(scheduler_run)
+scheduler_app.command("list")(scheduler_list)
+scheduler_app.command("trigger")(scheduler_trigger)
 
 app.command("ingest")(ingest)
 app.command("ingest-confluence")(ingest_confluence)

@@ -205,3 +205,7 @@ class ConfluenceClient:
                 break
             start += limit
         return pages
+
+    def get_folder_children(self, folder_id: str, limit: int = 25) -> list[ConfluencePage]:
+        """Return all pages under a Confluence folder, using v1 child/page endpoint."""
+        return self.get_children(folder_id, limit=limit)
