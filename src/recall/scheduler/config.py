@@ -22,7 +22,7 @@ _REQUIRED_PARAMS: dict[str, str] = {
     "local:source": "source",
 }
 
-_PARAM_KEYS = {"page_id", "folder_id", "space", "label", "collection", "recreate", "project", "source"}
+_PARAM_KEYS = {"page_id", "folder_id", "space", "label", "collection", "recreate", "project", "source", "only", "skip"}
 
 
 class ScheduleConfigError(Exception):

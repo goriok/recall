@@ -103,6 +103,65 @@ def test_local_invalid_mode_raises_value_error():
             _run_local_ingest(mode="bogus", params={})
 
 
+def test_local_all_only_filter_restricts_projects():
+    p1 = _make_project("hyle")
+    p2 = _make_project("notes")
+    p3 = _make_project("trivia")
+    cfg = _make_config(projects=[p1, p2, p3])
+
+    with (
+        patch("recall.commands.ingest.find_config", return_value=Path("/fake/recall.toml")),
+        patch("recall.commands.ingest.load_config", return_value=cfg),
+        patch("recall.commands.ingest.ensure_qdrant"),
+        patch("recall.commands.ingest.index_project", return_value=10) as mock_idx,
+    ):
+        result = _run_local_ingest(mode="all", params={"only": ["hyle", "notes"]})
+
+    assert mock_idx.call_count == 2
+    called_names = {call[0][0].name for call in mock_idx.call_args_list}
+    assert called_names == {"hyle", "notes"}
+    assert "trivia" not in [call[0][0].name for call in mock_idx.call_args_list]
+    assert "2 project(s) indexed" in result
+
+
+def test_local_all_skip_filter_excludes_projects():
+    p1 = _make_project("hyle")
+    p2 = _make_project("notes")
+    p3 = _make_project("trivia")
+    cfg = _make_config(projects=[p1, p2, p3])
+
+    with (
+        patch("recall.commands.ingest.find_config", return_value=Path("/fake/recall.toml")),
+        patch("recall.commands.ingest.load_config", return_value=cfg),
+        patch("recall.commands.ingest.ensure_qdrant"),
+        patch("recall.commands.ingest.index_project", return_value=5) as mock_idx,
+    ):
+        result = _run_local_ingest(mode="all", params={"skip": ["trivia"]})
+
+    assert mock_idx.call_count == 2
+    called_names = {call[0][0].name for call in mock_idx.call_args_list}
+    assert called_names == {"hyle", "notes"}
+    assert "2 project(s) indexed" in result
+
+
+def test_local_all_only_takes_precedence_over_skip():
+    p1 = _make_project("hyle")
+    p2 = _make_project("notes")
+    p3 = _make_project("trivia")
+    cfg = _make_config(projects=[p1, p2, p3])
+
+    with (
+        patch("recall.commands.ingest.find_config", return_value=Path("/fake/recall.toml")),
+        patch("recall.commands.ingest.load_config", return_value=cfg),
+        patch("recall.commands.ingest.ensure_qdrant"),
+        patch("recall.commands.ingest.index_project", return_value=5) as mock_idx,
+    ):
+        result = _run_local_ingest(mode="all", params={"only": ["hyle"], "skip": ["hyle"]})
+
+    assert mock_idx.call_count == 1
+    assert mock_idx.call_args[0][0].name == "hyle"
+
+
 def test_local_skips_project_with_missing_path():
     existing = _make_project("ok", exists=True)
     missing = _make_project("gone", exists=False)

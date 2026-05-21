@@ -20,6 +20,12 @@ def _run_local_ingest(*, mode: str, params: dict[str, Any], _console=None) -> st
 
     if mode == "all":
         projects = list(config.all_projects())
+        if only := params.get("only"):
+            only_set = set(only)
+            projects = [p for p in projects if p.name in only_set]
+        elif skip := params.get("skip"):
+            skip_set = set(skip)
+            projects = [p for p in projects if p.name not in skip_set]
     elif mode == "project":
         projects = [config.project(params["project"])]
     elif mode == "source":

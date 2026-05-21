@@ -176,3 +176,15 @@ def test_parse_local_source_without_source_raises():
 def test_parse_local_unknown_subtype_raises():
     with pytest.raises(ScheduleConfigError, match="unknown job"):
         parse_schedules({"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:unknown"}]})
+
+
+def test_parse_local_all_with_only_list():
+    data = {"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:all", "only": ["hyle", "notes"]}]}
+    entries = parse_schedules(data)
+    assert entries[0].params["only"] == ["hyle", "notes"]
+
+
+def test_parse_local_all_with_skip_list():
+    data = {"schedules": [{"name": "x", "cron": "0 * * * *", "job": "local:all", "skip": ["trivia", "BIA"]}]}
+    entries = parse_schedules(data)
+    assert entries[0].params["skip"] == ["trivia", "BIA"]
