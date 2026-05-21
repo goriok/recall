@@ -167,6 +167,16 @@ src/recall/
     └── indexer.py      # index_confluence_pages pipeline
 ```
 
+## Concepts
+
+Design rationale and architecture decisions in [`docs/concepts/`](docs/concepts/README.md):
+RAG pipeline, chunking strategy, embeddings, vector search, idempotency, MCP protocol, scheduling.
+
+## Runbooks
+
+Operational guides in [`docs/runbooks/`](docs/runbooks/README.md):
+scheduler (Docker & host), add/edit schedules, Confluence ingest, local ingest, Qdrant/Ollama recovery, MCP setup.
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md).
