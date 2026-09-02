@@ -16,6 +16,17 @@ markdown files → chunker → Ollama (nomic-embed-text) → Qdrant (embedded) �
 
 ## Quick Start
 
+### As a Claude Code plugin
+
+```
+/plugin marketplace add goriok/recall
+/plugin install recall
+```
+
+This registers `recall-mcp` as an MCP server, run on demand via `uvx` — no clone, no `uv tool install`. You still need [Ollama](https://ollama.com/download) locally with the `nomic-embed-text` model pulled (`ollama pull nomic-embed-text`) and a `recall.toml` (see [Configuration](#configuration)) for it to find anything to index.
+
+### CLI, standalone
+
 **Prerequisites:** [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download)
 
 ```bash
@@ -135,16 +146,16 @@ recall-mcp
 
 ### MCP Configuration
 
-**opencode** — add to `~/.config/opencode/opencode.jsonc`:
-```jsonc
-"recall": { "type": "local", "command": ["recall-mcp"], "enabled": true }
-```
-
-**Claude Code** — add to `~/.claude/settings.json`:
+**Claude Code** — install as a plugin (see [Quick Start](#as-a-claude-code-plugin)), or add manually to `~/.claude/settings.json`:
 ```json
 "mcpServers": {
   "recall": { "type": "stdio", "command": "recall-mcp" }
 }
+```
+
+**opencode** — add to `~/.config/opencode/opencode.jsonc`:
+```jsonc
+"recall": { "type": "local", "command": ["recall-mcp"], "enabled": true }
 ```
 
 ## Project Structure

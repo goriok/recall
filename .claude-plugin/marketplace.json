@@ -1,0 +1,14 @@
+{
+  "name": "recall",
+  "owner": {
+    "name": "Igor Soares Alves",
+    "url": "https://github.com/goriok"
+  },
+  "plugins": [
+    {
+      "name": "recall",
+      "source": "./",
+      "description": "Local semantic search over your project documentation via recall-mcp — embedded Qdrant, no server to run."
+    }
+  ]
+}
