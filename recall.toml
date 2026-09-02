@@ -1,6 +1,8 @@
 [qdrant]
-host = "localhost"
-port = 6333
+# Embedded mode — no server to run. Omit this section entirely to use the
+# default path (~/.local/share/recall/qdrant). Set host/port instead if you
+# need concurrent access from multiple processes at once.
+path = "~/.local/share/recall/qdrant"
 
 [embedding]
 model = "nomic-embed-text"

@@ -1,13 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
-
-from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, VectorParams, PointStruct
-
 from recall.chunker import chunk_markdown
 from recall.config import Config, ProjectConfig
-from recall.embedder import embed_batch
+from recall.core.interfaces import EmbeddingProvider, Point, VectorStore
 
 VECTOR_SIZE = 768  # nomic-embed-text output dimensions
 
@@ -16,16 +11,13 @@ def index_project(
     project: ProjectConfig,
     *,
     config: Config,
+    vector_store: VectorStore,
+    embedding_provider: EmbeddingProvider,
     recreate: bool = False,
 ) -> int:
     """Index all markdown files for a project. Returns number of chunks indexed."""
-    client = QdrantClient(url=config.qdrant.url)
-
-    if recreate or not _collection_exists(client, project.collection):
-        client.recreate_collection(
-            collection_name=project.collection,
-            vectors_config=VectorParams(size=VECTOR_SIZE, distance=Distance.COSINE),
-        )
+    if recreate or not vector_store.collection_exists(project.collection):
+        vector_store.recreate_collection(project.collection, VECTOR_SIZE)
 
     source_path = project.resolved_path
     if not source_path.exists():
@@ -50,10 +42,10 @@ def index_project(
         return 0
 
     texts = [c.text for c in all_chunks]
-    vectors = embed_batch(texts, config=config.embedding)
+    vectors = embedding_provider.embed_batch(texts)
 
     points = [
-        PointStruct(
+        Point(
             id=int(c.id, 16) % (2**63),  # qdrant needs uint64
             vector=v,
             payload={
@@ -66,15 +58,5 @@ def index_project(
         for c, v in zip(all_chunks, vectors)
     ]
 
-    batch_size = 100
-    for i in range(0, len(points), batch_size):
-        client.upsert(collection_name=project.collection, points=points[i : i + batch_size])
+    vector_store.upsert(project.collection, points)
     return len(points)
-
-
-def _collection_exists(client: QdrantClient, name: str) -> bool:
-    try:
-        client.get_collection(name)
-        return True
-    except Exception:
-        return False

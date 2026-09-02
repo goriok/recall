@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from unittest.mock import patch, MagicMock
-from pathlib import Path
-
 from recall.config import Config, QdrantConfig, EmbeddingConfig, ProjectConfig
 from recall.indexer import index_project
+from tests.fakes import FakeEmbeddingProvider, FakeVectorStore
 
 
 def _make_config() -> Config:
@@ -25,19 +23,16 @@ def test_index_project_skips_excluded_paths(tmp_path):
         path_exclude=["node_modules"],
     )
 
-    with patch("recall.indexer.embed_batch", side_effect=lambda texts, **kw: [[0.1] * 768 for _ in texts]), \
-         patch("recall.indexer.QdrantClient") as mock_qdrant, \
-         patch("recall.indexer._collection_exists", return_value=True):
-        mock_client = MagicMock()
-        mock_qdrant.return_value = mock_client
-        count = index_project(project, config=_make_config())
+    vector_store = FakeVectorStore()
+    count = index_project(
+        project,
+        config=_make_config(),
+        vector_store=vector_store,
+        embedding_provider=FakeEmbeddingProvider(),
+    )
 
     assert count > 0
-    all_sources = [
-        pt.payload["source"]
-        for call in mock_client.upsert.call_args_list
-        for pt in call.kwargs["points"]
-    ]
+    all_sources = [p.payload["source"] for p in vector_store.collections["test"]]
     assert not any("node_modules" in s for s in all_sources)
 
 
@@ -55,25 +50,27 @@ def test_index_project_skips_multiple_blocked_dirs(tmp_path):
         collection="test",
     )
 
-    with patch("recall.indexer.embed_batch", side_effect=lambda texts, **kw: [[0.1] * 768 for _ in texts]), \
-         patch("recall.indexer.QdrantClient") as mock_qdrant, \
-         patch("recall.indexer._collection_exists", return_value=True):
-        mock_client = MagicMock()
-        mock_qdrant.return_value = mock_client
-        count = index_project(project, config=_make_config())
+    vector_store = FakeVectorStore()
+    count = index_project(
+        project,
+        config=_make_config(),
+        vector_store=vector_store,
+        embedding_provider=FakeEmbeddingProvider(),
+    )
 
     assert count > 0
-    all_sources = [
-        pt.payload["source"]
-        for call in mock_client.upsert.call_args_list
-        for pt in call.kwargs["points"]
-    ]
+    all_sources = [p.payload["source"] for p in vector_store.collections["test"]]
     assert not any(".git" in s or ".venv" in s for s in all_sources)
 
 
 def test_index_project_returns_zero_for_nonexistent_path():
     project = ProjectConfig(name="ghost", path="/nonexistent", collection="ghost")
-    count = index_project(project, config=_make_config())
+    count = index_project(
+        project,
+        config=_make_config(),
+        vector_store=FakeVectorStore(),
+        embedding_provider=FakeEmbeddingProvider(),
+    )
     assert count == 0
 
 
@@ -87,17 +84,14 @@ def test_index_project_stores_absolute_source_path(tmp_path):
         collection="test",
     )
 
-    with patch("recall.indexer.embed_batch", side_effect=lambda texts, **kw: [[0.1] * 768 for _ in texts]), \
-         patch("recall.indexer.QdrantClient") as mock_qdrant, \
-         patch("recall.indexer._collection_exists", return_value=True):
-        mock_client = MagicMock()
-        mock_qdrant.return_value = mock_client
-        index_project(project, config=_make_config())
+    vector_store = FakeVectorStore()
+    index_project(
+        project,
+        config=_make_config(),
+        vector_store=vector_store,
+        embedding_provider=FakeEmbeddingProvider(),
+    )
 
-    all_sources = [
-        pt.payload["source"]
-        for call in mock_client.upsert.call_args_list
-        for pt in call.kwargs["points"]
-    ]
+    all_sources = [p.payload["source"] for p in vector_store.collections["test"]]
     expected = str(tmp_path / "guide.md")
     assert any(s == expected for s in all_sources)

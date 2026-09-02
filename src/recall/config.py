@@ -9,13 +9,26 @@ class ConfigError(Exception):
     pass
 
 
+_DEFAULT_QDRANT_PATH = str(Path.home() / ".local" / "share" / "recall" / "qdrant")
+
+
 @dataclass
 class QdrantConfig:
-    host: str = "localhost"
+    """Embedded (local) mode by default — path to an on-disk store, no server to run.
+
+    Set `host`/`port` instead to talk to a real Qdrant server (needed for concurrent
+    access from multiple processes at once — the embedded store takes an exclusive
+    lock on `path` per process). `path` takes precedence when both are set.
+    """
+
+    path: str | None = _DEFAULT_QDRANT_PATH
+    host: str | None = None
     port: int = 6333
 
     @property
-    def url(self) -> str:
+    def url(self) -> str | None:
+        if self.host is None:
+            return None
         return f"http://{self.host}:{self.port}"
 
 
@@ -126,10 +139,15 @@ def load_config(config_path: Path) -> Config:
         data = tomllib.load(f)
 
     qdrant_data = data.get("qdrant", {})
-    qdrant = QdrantConfig(
-        host=qdrant_data.get("host", "localhost"),
-        port=qdrant_data.get("port", 6333),
-    )
+    if "host" in qdrant_data:
+        # explicit server mode — path stays unset even if a default exists
+        qdrant = QdrantConfig(
+            path=qdrant_data.get("path"),
+            host=qdrant_data["host"],
+            port=qdrant_data.get("port", 6333),
+        )
+    else:
+        qdrant = QdrantConfig(path=qdrant_data.get("path", _DEFAULT_QDRANT_PATH))
 
     emb_data = data.get("embedding", {})
     embedding = EmbeddingConfig(

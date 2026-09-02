@@ -46,7 +46,7 @@ def test_ingest_calls_indexer_for_project(tmp_path):
         glob="**/*.md",
     )
     config = Config(
-        qdrant=QdrantConfig(),
+        qdrant=QdrantConfig(path=str(tmp_path / "qdrant")),
         embedding=EmbeddingConfig(),
         projects=[project],
     )
@@ -68,7 +68,11 @@ def test_ingest_skips_missing_path(tmp_path):
         path="/nonexistent/path",
         collection="ghost",
     )
-    config = Config(qdrant=QdrantConfig(), embedding=EmbeddingConfig(), projects=[project])
+    config = Config(
+        qdrant=QdrantConfig(path=str(tmp_path / "qdrant")),
+        embedding=EmbeddingConfig(),
+        projects=[project],
+    )
 
     with patch("recall.commands.ingest.find_config", return_value=Path("/fake/recall.toml")), \
          patch("recall.commands.ingest.load_config", return_value=config), \
@@ -82,7 +86,7 @@ def test_ingest_skips_missing_path(tmp_path):
 
 def test_ingest_all_calls_indexer_for_each_project(tmp_path):
     config = Config(
-        qdrant=QdrantConfig(),
+        qdrant=QdrantConfig(path=str(tmp_path / "qdrant")),
         embedding=EmbeddingConfig(),
         projects=[
             ProjectConfig(name="a", path=str(tmp_path), collection="a"),

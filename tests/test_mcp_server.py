@@ -1,8 +1,9 @@
 import pytest
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
 from pathlib import Path
 from recall.config import Config, QdrantConfig, EmbeddingConfig, ProjectConfig
 from recall.searcher import SearchResult
+from tests.fakes import FakeEmbeddingProvider, FakeVectorStore
 
 FAKE_CONFIG = Config(
     qdrant=QdrantConfig(),
@@ -21,12 +22,30 @@ FAKE_RESULTS = [
 ]
 
 
+@pytest.fixture(autouse=True)
+def _reset_adapter_singleton():
+    """mcp_server caches the vector store/embedding provider per process — reset
+    between tests so one test's fake adapters don't leak into the next."""
+    import recall.mcp_server as mcp_server
+
+    yield
+    mcp_server._vector_store = None
+    mcp_server._embedding_provider = None
+
+
+def _patch_adapters():
+    return patch(
+        "recall.mcp_server._get_adapters",
+        return_value=(FakeVectorStore(), FakeEmbeddingProvider()),
+    )
+
+
 def test_search_knowledge_returns_formatted_text():
     from recall.mcp_server import search_knowledge
 
     with patch("recall.mcp_server.find_config", return_value=Path("/fake/recall.toml")), \
          patch("recall.mcp_server.load_config", return_value=FAKE_CONFIG), \
-         patch("recall.mcp_server.ensure_qdrant"), \
+         _patch_adapters(), \
          patch("recall.mcp_server.semantic_search", return_value=FAKE_RESULTS):
         result = search_knowledge("streaming")
 
@@ -40,7 +59,7 @@ def test_search_knowledge_with_project_filter():
 
     with patch("recall.mcp_server.find_config", return_value=Path("/fake/recall.toml")), \
          patch("recall.mcp_server.load_config", return_value=FAKE_CONFIG), \
-         patch("recall.mcp_server.ensure_qdrant"), \
+         _patch_adapters(), \
          patch("recall.mcp_server.semantic_search", return_value=FAKE_RESULTS) as mock_search:
         search_knowledge("streaming", project="docs")
 
@@ -53,7 +72,7 @@ def test_search_knowledge_returns_no_results_message():
 
     with patch("recall.mcp_server.find_config", return_value=Path("/fake/recall.toml")), \
          patch("recall.mcp_server.load_config", return_value=FAKE_CONFIG), \
-         patch("recall.mcp_server.ensure_qdrant"), \
+         _patch_adapters(), \
          patch("recall.mcp_server.semantic_search", return_value=[]):
         result = search_knowledge("nothing here")
 

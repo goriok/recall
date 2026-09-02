@@ -10,8 +10,10 @@ from rich.console import Console
 
 console = Console(stderr=True)
 
-# docker-compose.yml lives next to recall.toml (project root)
-_COMPOSE_FILE = Path(__file__).parent.parent.parent / "docker-compose.yml"
+# Installed via `uv tool install`, recall runs from an isolated venv with no
+# docker-compose.yml alongside it — bootstrap.sh copies one here so the guard
+# always has a fallback regardless of the caller's CWD.
+_GLOBAL_COMPOSE_FILE = Path.home() / ".config" / "recall" / "docker-compose.yml"
 _HEALTH_TIMEOUT = 15  # seconds to wait for Qdrant to become ready
 
 
@@ -69,11 +71,13 @@ def _wait_until_ready(url: str, timeout: int = _HEALTH_TIMEOUT) -> bool:
 
 def _find_compose_file() -> Path | None:
     # Walk up from CWD looking for docker-compose.yml in a recall project
+    # (developing recall itself, or a project that vendors its own compose file)
     for directory in [Path.cwd(), *Path.cwd().parents]:
         candidate = directory / "docker-compose.yml"
         if candidate.exists() and (directory / "recall.toml").exists():
             return candidate
-    # Fallback: alongside this package
-    if _COMPOSE_FILE.exists():
-        return _COMPOSE_FILE
+    # Fallback: the copy bootstrap.sh placed in the global config dir —
+    # always present regardless of where `recall`/`recall-mcp` is invoked from.
+    if _GLOBAL_COMPOSE_FILE.exists():
+        return _GLOBAL_COMPOSE_FILE
     return None

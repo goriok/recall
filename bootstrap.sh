@@ -30,6 +30,12 @@ else
   echo "    ~/.config/recall/recall.toml already exists — skipping (edit manually if needed)"
 fi
 
+echo "==> Installing docker-compose.yml (only needed for server mode)..."
+cp "$REPO_ROOT/docker-compose.yml" "$HOME/.config/recall/docker-compose.yml"
+echo "    ~/.config/recall/docker-compose.yml up to date"
+echo "    (recall defaults to embedded mode — no server, no Podman required;"
+echo "     this file is only used if you set [qdrant] host/port in recall.toml)"
+
 echo "==> Configuring opencode MCP..."
 OPENCODE_CONFIG="$HOME/.config/opencode/opencode.jsonc"
 if [ -f "$OPENCODE_CONFIG" ]; then

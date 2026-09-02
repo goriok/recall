@@ -14,7 +14,7 @@ This project uses the **Developer Certificate of Origin (DCO)**. By signing off 
 
 ## Development Setup
 
-**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download), [Podman](https://podman.io/) + `podman-compose`
+**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download). [Podman](https://podman.io/) + `podman-compose` only needed if you test server mode (`[qdrant] host`/`port`) — embedded mode (the default) needs neither.
 
 ```bash
 git clone https://github.com/goriok/recall.git
@@ -43,8 +43,8 @@ uv tool install --from . recall --force --reinstall   # reinstall CLI after chan
 [Conventional Commits](https://www.conventionalcommits.org/) — no scope required:
 
 ```
-feat: add get_pages_by_label to ConfluenceClient
-fix: resolve recursive children fetching all accumulated pages
+feat: add collection_prefix to auto-discovered sources
+fix: resolve embedded Qdrant lock leaking across mcp_server calls
 test: add coverage for auto-discover with empty dirs
 docs: update README quick start
 chore: bump qdrant-client to 1.9
@@ -73,8 +73,8 @@ git commit -s -m "feat: add label-based Confluence ingest"
 ## Testing Requirements
 
 - Write tests before implementation (TDD).
-- No real HTTP calls — mock `httpx`, `ollama`, `QdrantClient` at the consumer module.
-- Integration tests (real Qdrant + Ollama) are not in CI; run them locally with `podman compose up -d`.
+- No real network/disk calls against `VectorStore`/`EmbeddingProvider` — use `tests/fakes.py` (`FakeVectorStore`, `FakeEmbeddingProvider`), not `mock.patch` on `QdrantClient`/`ollama` directly.
+- Integration tests (real Qdrant embedded store + Ollama) are not in CI; run them locally with `recall ingest` / `recall search` against a scratch `recall.toml`.
 - Coverage gate 90% enforced by `pytest --cov` in CI.
 
 ## Code Style
