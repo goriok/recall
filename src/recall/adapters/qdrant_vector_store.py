@@ -40,12 +40,15 @@ class QdrantVectorStore:
         for i in range(0, len(qdrant_points), batch_size):
             self._client.upsert(collection_name=name, points=qdrant_points[i : i + batch_size])
 
-    def query(self, name: str, vector: list[float], limit: int) -> list[VectorHit]:
+    def query(
+        self, name: str, vector: list[float], limit: int, min_score: float | None = None
+    ) -> list[VectorHit]:
         try:
             response = self._client.query_points(
                 collection_name=name,
                 query=vector,
                 limit=limit,
+                score_threshold=min_score,
                 with_payload=True,
             )
         except Exception:

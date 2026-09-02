@@ -19,9 +19,14 @@ class FakeVectorStore:
         self.collections.setdefault(name, [])
         self.collections[name].extend(points)
 
-    def query(self, name: str, vector: list[float], limit: int) -> list[VectorHit]:
+    def query(
+        self, name: str, vector: list[float], limit: int, min_score: float | None = None
+    ) -> list[VectorHit]:
         points = self.collections.get(name, [])
-        return [VectorHit(score=1.0, payload=p.payload) for p in points[:limit]]
+        hits = [VectorHit(score=1.0, payload=p.payload) for p in points]
+        if min_score is not None:
+            hits = [h for h in hits if h.score >= min_score]
+        return hits[:limit]
 
     def list_collections(self) -> list[CollectionInfo]:
         return [

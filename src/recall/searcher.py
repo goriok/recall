@@ -23,6 +23,7 @@ def semantic_search(
     embedding_provider: EmbeddingProvider,
     collection: str | None = None,
     top_k: int = 5,
+    min_score: float | None = None,
 ) -> list[SearchResult]:
     vector = embedding_provider.embed(query)
 
@@ -32,7 +33,7 @@ def semantic_search(
 
     results: list[SearchResult] = []
     for col in collections:
-        hits = vector_store.query(col, vector, top_k)
+        hits = vector_store.query(col, vector, top_k, min_score=min_score)
         for hit in hits:
             results.append(
                 SearchResult(

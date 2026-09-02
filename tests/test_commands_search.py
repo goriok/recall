@@ -54,6 +54,17 @@ def test_search_with_project_filter():
     assert call_kwargs.get("collection") == "docs"
 
 
+def test_search_with_min_score():
+    with patch("recall.commands.search.find_config", return_value=Path("/fake/recall.toml")), \
+         patch("recall.commands.search.load_config", return_value=FAKE_CONFIG), \
+         patch("recall.commands.search.semantic_search", return_value=FAKE_RESULTS) as mock_search:
+        result = runner.invoke(app, ["search", "streaming", "--min-score", "0.7"])
+
+    assert result.exit_code == 0
+    call_kwargs = mock_search.call_args[1]
+    assert call_kwargs.get("min_score") == 0.7
+
+
 def test_search_shows_no_results_message():
     with patch("recall.commands.search.find_config", return_value=Path("/fake/recall.toml")), \
          patch("recall.commands.search.load_config", return_value=FAKE_CONFIG), \

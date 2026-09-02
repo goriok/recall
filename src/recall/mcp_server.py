@@ -31,7 +31,12 @@ def _get_adapters(config: Config) -> tuple[VectorStore, EmbeddingProvider]:
     return _vector_store, _embedding_provider
 
 
-def search_knowledge(query: str, project: Optional[str] = None, top_k: int = 5) -> str:
+def search_knowledge(
+    query: str,
+    project: Optional[str] = None,
+    top_k: int = 5,
+    min_score: Optional[float] = None,
+) -> str:
     """Core search logic — separated for testability."""
     config_path = find_config()
     config = load_config(config_path)
@@ -44,6 +49,7 @@ def search_knowledge(query: str, project: Optional[str] = None, top_k: int = 5) 
         embedding_provider=embedding_provider,
         collection=project,
         top_k=top_k,
+        min_score=min_score,
     )
 
     if not results:
@@ -63,6 +69,7 @@ def search_docs(
     query: str,
     project: Optional[str] = None,
     top_k: int = 5,
+    min_score: Optional[float] = None,
 ) -> str:
     """Search indexed project documentation semantically.
 
@@ -70,8 +77,11 @@ def search_docs(
         query: Natural language search query
         project: Optional project name to restrict search (e.g. 'mcx-companion')
         top_k: Number of results to return (default 5)
+        min_score: Optional similarity cutoff (0-1). Raise it (e.g. 0.6-0.7) when
+            results look unrelated to the query; lower or omit it to cast a wider
+            net when a tighter search comes back empty.
     """
-    return search_knowledge(query, project=project, top_k=top_k)
+    return search_knowledge(query, project=project, top_k=top_k, min_score=min_score)
 
 
 def main() -> None:

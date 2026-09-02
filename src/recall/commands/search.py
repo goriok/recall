@@ -19,6 +19,7 @@ def search(
     query: str = typer.Argument(..., help="Search query"),
     collection: Optional[str] = typer.Option(None, "--in", metavar="PROJECT", help="Restrict to a specific project collection"),
     top_k: int = typer.Option(5, "--top", help="Number of results to return"),
+    min_score: Optional[float] = typer.Option(None, "--min-score", help="Discard results below this similarity score (0-1)"),
 ):
     """Search across indexed docs."""
     try:
@@ -41,6 +42,7 @@ def search(
             embedding_provider=embedding_provider,
             collection=collection,
             top_k=top_k,
+            min_score=min_score,
         )
     finally:
         vector_store.close()
