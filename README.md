@@ -25,6 +25,19 @@ markdown files → chunker → Ollama (nomic-embed-text) → Qdrant (embedded) �
 
 This registers `recall-mcp` as an MCP server, run on demand via `uvx` — no clone, no `uv tool install`. You still need [Ollama](https://ollama.com/download) locally with the `nomic-embed-text` model pulled (`ollama pull nomic-embed-text`) and a `recall.toml` (see [Configuration](#configuration)) for it to find anything to index.
 
+**To update:** `/plugin marketplace update goriok/recall` pulls the latest release; `recall-mcp` runs via `uvx`, so the next invocation always fetches the version pinned by the marketplace — no separate reinstall step.
+
+### As an Antigravity (`agy`) plugin
+
+```bash
+git clone git@github.com:goriok/recall.git
+agy plugin install ./recall/plugins/recall
+```
+
+`plugins/recall/` is this repo's `agy`-native plugin folder (`plugin.json` + `mcp_config.json` registering `recall-mcp` over stdio). `agy plugin install` copies that registration into `agy`'s own local config (`~/.gemini/config/plugins/recall/`) — it is **not** a live link back to the clone. Editing the clone later has no effect until you install again.
+
+**To update:** `git pull`, then re-run `agy plugin install ./recall/plugins/recall` — it overwrites the previous registration in place. There is no `agy plugin update` command. Run `agy plugin validate ./recall/plugins/recall` first if you want to confirm the plugin folder is well-formed before installing.
+
 ### CLI, standalone
 
 **Prerequisites:** [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download)
