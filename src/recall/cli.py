@@ -1,6 +1,5 @@
 import typer
 from recall.commands.ingest import ingest
-from recall.commands.ingest_confluence import ingest_confluence
 from recall.commands.search import search
 from recall.commands.collections import collections_list, collections_drop
 from recall.commands.server import server_start, server_stop, server_restart, server_status, server_logs
@@ -21,7 +20,6 @@ server_app.command("status")(server_status)
 server_app.command("logs")(server_logs)
 
 app.command("ingest")(ingest)
-app.command("ingest-confluence")(ingest_confluence)
 app.command("search")(search)
 
 if __name__ == "__main__":
