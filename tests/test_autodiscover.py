@@ -35,8 +35,9 @@ def test_discover_projects_returns_one_per_subdir(tmp_path):
 
     discovered = cfg.discover_projects()
     names = {p.name for p in discovered}
-    assert "proj-a" in names
-    assert "proj-b" in names
+    prefix = tmp_path.parent.name
+    assert f"{prefix}.proj-a" in names
+    assert f"{prefix}.proj-b" in names
 
 
 def test_discover_projects_skips_excluded_dirs(tmp_path):
@@ -53,8 +54,9 @@ def test_discover_projects_skips_excluded_dirs(tmp_path):
 
     discovered = cfg.discover_projects()
     names = {p.name for p in discovered}
-    assert "proj-a" in names
-    assert "node_modules" not in names
+    prefix = tmp_path.parent.name
+    assert f"{prefix}.proj-a" in names
+    assert f"{prefix}.node_modules" not in names
 
 
 def test_discover_projects_skips_dirs_without_matching_files(tmp_path):
@@ -68,8 +70,9 @@ def test_discover_projects_skips_dirs_without_matching_files(tmp_path):
 
     discovered = cfg.discover_projects()
     names = {p.name for p in discovered}
-    assert "has-docs" in names
-    assert "empty-dir" not in names
+    prefix = tmp_path.parent.name
+    assert f"{prefix}.has-docs" in names
+    assert f"{prefix}.empty-dir" not in names
 
 
 def test_all_projects_explicit_takes_precedence_over_discovered(tmp_path):
@@ -101,10 +104,10 @@ def test_all_projects_includes_both_explicit_and_discovered(tmp_path):
 
     names = {p.name for p in cfg.all_projects()}
     assert "explicit-proj" in names
-    assert "auto-proj" in names
+    assert f"{tmp_path.parent.name}.auto-proj" in names
 
 
-def test_discover_projects_uses_subdir_name_as_collection(tmp_path):
+def test_discover_projects_prefixes_collection_with_source_root_parent_name(tmp_path):
     (tmp_path / "my-project").mkdir()
     (tmp_path / "my-project" / "readme.md").write_text("# Hello")
 
@@ -113,6 +116,26 @@ def test_discover_projects_uses_subdir_name_as_collection(tmp_path):
     cfg = load_config(toml)
 
     discovered = cfg.discover_projects()
-    proj = next(p for p in discovered if p.name == "my-project")
-    assert proj.collection == "my-project"
-    assert proj.name == "my-project"
+    expected_name = f"{tmp_path.parent.name}.my-project"
+    proj = next(p for p in discovered if p.name == expected_name)
+    assert proj.collection == expected_name
+
+
+def test_discover_projects_avoids_collision_across_sources_with_same_subdir_name(tmp_path):
+    repo_a = tmp_path / "app-ctx-auth" / "topics"
+    repo_b = tmp_path / "app-ctx-billing" / "topics"
+    (repo_a / "shared").mkdir(parents=True)
+    (repo_b / "shared").mkdir(parents=True)
+    (repo_a / "shared" / "doc.md").write_text("# Auth shared")
+    (repo_b / "shared" / "doc.md").write_text("# Billing shared")
+
+    toml = tmp_path / "recall.toml"
+    toml.write_text(
+        f'[[sources]]\nroot = "{repo_a}"\nglob = "**/*.md"\n\n'
+        f'[[sources]]\nroot = "{repo_b}"\nglob = "**/*.md"\n'
+    )
+    cfg = load_config(toml)
+
+    discovered = cfg.discover_projects()
+    names = {p.name for p in discovered}
+    assert names == {"app-ctx-auth.shared", "app-ctx-billing.shared"}

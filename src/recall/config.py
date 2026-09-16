@@ -94,7 +94,12 @@ class Config:
         raise ConfigError(f"unknown project '{name}' — check recall.toml")
 
     def discover_projects(self) -> list[ProjectConfig]:
-        """Auto-discover projects from [[sources]] entries."""
+        """Auto-discover projects from [[sources]] entries.
+
+        Collection names are prefixed with the source's repo dir name (e.g.
+        dpro-k8s-ctx-auth.mgc-auth) to avoid collisions when two repos have a topic
+        with the same name.
+        """
         explicit_names = {p.name for p in self.projects}
         discovered: list[ProjectConfig] = []
 
@@ -102,21 +107,23 @@ class Config:
             root = source.resolved_root
             if not root.exists():
                 continue
+            prefix = root.parent.name
             for subdir in sorted(root.iterdir()):
                 if not subdir.is_dir():
                     continue
                 if subdir.name in source.exclude:
                     continue
-                if subdir.name in explicit_names:
+                name = f"{prefix}.{subdir.name}"
+                if name in explicit_names:
                     continue
                 # only include if there are matching files
                 if not any(subdir.glob(source.glob)):
                     continue
                 discovered.append(
                     ProjectConfig(
-                        name=subdir.name,
+                        name=name,
                         path=str(subdir),
-                        collection=subdir.name,
+                        collection=name,
                         glob=source.glob,
                         path_exclude=list(source.path_exclude),
                     )
