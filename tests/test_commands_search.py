@@ -8,6 +8,12 @@ from recall.searcher import SearchResult
 
 runner = CliRunner()
 
+
+@pytest.fixture(autouse=True)
+def _guard_is_mocked():
+    with patch("recall.commands.search.ensure_qdrant"):
+        yield
+
 FAKE_CONFIG = Config(
     qdrant=QdrantConfig(host="localhost", port=6333),
     embedding=EmbeddingConfig(model="nomic-embed-text", provider="ollama"),

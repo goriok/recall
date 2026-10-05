@@ -7,6 +7,12 @@ from recall.config import Config, QdrantConfig, EmbeddingConfig, ProjectConfig
 
 runner = CliRunner()
 
+
+@pytest.fixture(autouse=True)
+def _guard_is_mocked():
+    with patch("recall.commands.ingest.ensure_qdrant"):
+        yield
+
 FAKE_PROJECT = ProjectConfig(
     name="test-proj",
     path="/tmp/fake-docs",

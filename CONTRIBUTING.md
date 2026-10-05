@@ -14,7 +14,7 @@ This project uses the **Developer Certificate of Origin (DCO)**. By signing off 
 
 ## Development Setup
 
-**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download). [Podman](https://podman.io/) + `podman-compose` only needed if you test server mode (`[qdrant] host`/`port`) — embedded mode (the default) needs neither.
+**Prerequisites:** Python 3.12+, [uv](https://docs.astral.sh/uv/getting-started/installation/), [Ollama](https://ollama.com/download). [Podman](https://podman.io/) only needed if you test server mode (`[qdrant] host`/`port`) — embedded mode (the default) needs neither.
 
 ```bash
 git clone https://github.com/goriok/recall.git
