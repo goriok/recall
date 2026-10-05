@@ -1,0 +1,14 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "recall",
+  "version": "0.5.0",
+  "description": "Semantic search over your documentation and source code via recall-mcp, with file, line range and symbol for every result, plus the recall-search skill.",
+  "author": {
+    "name": "Igor Soares Alves",
+    "url": "https://github.com/goriok"
+  },
+  "homepage": "https://github.com/goriok/recall",
+  "repository": "https://github.com/goriok/recall.git",
+  "license": "MIT",
+  "keywords": ["rag", "semantic-search", "qdrant", "mcp", "code-search"]
+}

@@ -1,0 +1,10 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json",
+  "mcpServers": {
+    "recall": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/goriok/recall.git", "recall-mcp"]
+    }
+  }
+}

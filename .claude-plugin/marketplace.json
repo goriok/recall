@@ -8,7 +8,10 @@
     {
       "name": "recall",
       "source": "./",
-      "description": "Local semantic search over your project documentation via recall-mcp — embedded Qdrant, no server to run."
+      "description": "Semantic search over docs and source code via recall-mcp (embedded or server Qdrant), plus the recall-search skill."
     }
-  ]
+  ],
+  "metadata": {
+    "description": "Semantic search over documentation and source code via the recall MCP server, plus the recall-search skill."
+  }
 }
