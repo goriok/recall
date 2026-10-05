@@ -54,7 +54,7 @@ Claude Code:
 Hermes:
 
 ```bash
-hermes plugins install goriok/recall
+hermes plugins install goriok/recall#plugins/hermes
 hermes plugins enable recall
 ```
 

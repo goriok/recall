@@ -9,6 +9,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parent.parent
 SKILLS = ROOT / "skills"
+HERMES = ROOT / "plugins" / "hermes"
 PLUGIN_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json"
 MCP_SCHEMA = "https://agent-plugins.org/schemas/1.0.0/mcp.schema.json"
 
@@ -35,7 +36,7 @@ def _pyproject_version() -> str:
 def test_every_plugin_manifest_carries_the_package_version():
     version = _pyproject_version()
     assert _json(ROOT / ".claude-plugin" / "plugin.json")["version"] == version
-    assert _json(ROOT / "plugin.json")["version"] == version
+    assert _json(HERMES / "plugin.json")["version"] == version
 
 
 def test_claude_marketplace_points_at_the_repo_root_plugin():
@@ -46,7 +47,7 @@ def test_claude_marketplace_points_at_the_repo_root_plugin():
 
 
 def test_hermes_portable_manifest_uses_the_agent_plugins_v1_schema():
-    manifest = _json(ROOT / "plugin.json")
+    manifest = _json(HERMES / "plugin.json")
     assert manifest["$schema"] == PLUGIN_SCHEMA
     assert re.fullmatch(r"[a-z0-9][a-z0-9.-]*", manifest["name"])
     assert set(manifest) <= {
@@ -57,7 +58,7 @@ def test_hermes_portable_manifest_uses_the_agent_plugins_v1_schema():
 
 def test_mcp_servers_are_the_same_command_for_every_host():
     claude = _json(ROOT / ".claude-plugin" / "plugin.json")["mcpServers"]["recall"]
-    hermes = _json(ROOT / "mcp.json")
+    hermes = _json(HERMES / "mcp.json")
     assert hermes["$schema"] == MCP_SCHEMA
     server = hermes["mcpServers"]["recall"]
     assert server["type"] == "stdio"
@@ -71,6 +72,17 @@ def test_agy_plugin_shares_the_single_skills_directory():
     assert link.is_symlink()
     assert link.resolve() == SKILLS.resolve()
     assert _json(ROOT / "plugins" / "recall" / "mcp_config.json")["mcpServers"]["recall"]["command"] == "recall-mcp"
+
+
+def test_hermes_package_is_self_contained_with_a_real_copy_of_the_skills():
+    skills = HERMES / "skills"
+    assert skills.is_dir() and not skills.is_symlink()
+    assert not (HERMES / "pyproject.toml").exists()
+    assert not (ROOT / "plugin.json").exists() and not (ROOT / "mcp.json").exists()
+    names = sorted(p.name for p in SKILLS.iterdir())
+    assert sorted(p.name for p in skills.iterdir()) == names
+    for name in names:
+        assert (skills / name / "SKILL.md").read_bytes() == (SKILLS / name / "SKILL.md").read_bytes()
 
 
 def test_skills_follow_the_shared_agent_skills_constraints():
@@ -111,7 +123,7 @@ def test_cross_references_between_skills_point_to_existing_skills():
             assert ref in names, f"{skill.name} refers to missing skill {ref}"
 
 
-@pytest.mark.parametrize("path", ["plugin.json", "mcp.json", ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"])
+@pytest.mark.parametrize("path", ["plugins/hermes/plugin.json", "plugins/hermes/mcp.json", ".claude-plugin/plugin.json", ".claude-plugin/marketplace.json"])
 def test_manifests_do_not_embed_secrets(path):
     text = (ROOT / path).read_text(encoding="utf-8")
     assert not re.search(r"(?i)(api[_-]?key|token|secret)\"\s*:\s*\"[^\"$]", text)

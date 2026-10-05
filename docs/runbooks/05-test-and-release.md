@@ -65,7 +65,7 @@ O servidor descartável sobe em portas diferentes das do [runbook 04](04-qdrant-
 
 ```bash
 claude plugin validate .
-hermes plugins validate .
+hermes plugins validate ./plugins/hermes
 agy plugin validate ./plugins/recall
 ```
 
@@ -75,12 +75,12 @@ Os três precisam passar; o aviso do Claude Code sobre o `CLAUDE.md` na raiz é 
 
 ```bash
 sed -i 's/^version = ".*"/version = "X.Y.Z"/' pyproject.toml
-sed -i 's/"version": "[0-9.]*"/"version": "X.Y.Z"/' plugin.json .claude-plugin/plugin.json
+sed -i 's/"version": "[0-9.]*"/"version": "X.Y.Z"/' plugins/hermes/plugin.json .claude-plugin/plugin.json
 uv lock
 uv run python -m pytest tests/test_plugin_packaging.py
 ```
 
-`pyproject.toml`, `plugin.json` e `.claude-plugin/plugin.json` precisam ter a mesma versão, e o teste de empacotamento falha se divergirem; o `uv lock` atualiza o `uv.lock`.
+`pyproject.toml`, `plugins/hermes/plugin.json` e `.claude-plugin/plugin.json` precisam ter a mesma versão, e o teste de empacotamento falha se divergirem; o `uv lock` atualiza o `uv.lock`.
 
 ## 6. Publicar e atualizar
 

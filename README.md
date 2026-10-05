@@ -31,14 +31,14 @@ One repository ships the MCP server and the `recall-search` skill, packaged once
 
 This registers the `recall-mcp` MCP server and the skill (as `recall:recall-search`). **To update:** `/plugin marketplace update goriok/recall`, then `/reload-plugins`.
 
-**Hermes** (`hermes-cli`) — a portable Agent Plugins v1 package (`plugin.json` + `mcp.json` + `skills/`):
+**Hermes** (`hermes-cli`) — a portable Agent Plugins v1 package in `plugins/hermes/` (`plugin.json` + `mcp.json` + `skills/`):
 
 ```bash
-hermes plugins install goriok/recall
+hermes plugins install goriok/recall#plugins/hermes
 hermes plugins enable recall
 ```
 
-Portable packages install disabled, so the enable step is required. Hermes passes an MCP server only a safe subset of the environment (`PATH`, `HOME`, `XDG_*`, ...), `recall` itself reads `~/.config/recall/.env` (`HOME` is in that safe subset), so keep the endpoint and key there; no extra Hermes configuration is needed. **To update:** `hermes plugins update recall`.
+Portable packages install disabled, so the enable step is required. The package lives in a subdirectory because Hermes co-installs the Python dependencies of any plugin that has a `pyproject.toml` at its root, which would clash with Hermes' own `mcp` pin; `recall-mcp` runs isolated through `uvx`. Hermes passes an MCP server only a safe subset of the environment (`PATH`, `HOME`, `XDG_*`, ...), `recall` itself reads `~/.config/recall/.env` (`HOME` is in that safe subset), so keep the endpoint and key there; no extra Hermes configuration is needed. **To update:** `hermes plugins update recall`.
 
 To get just the skill as a slash command (`/recall-search`) and skip the MCP server, use the skills route instead: `hermes skills tap add goriok/recall` then `hermes skills install goriok/recall/recall-search`.
 
@@ -51,7 +51,7 @@ agy plugin install ./recall/plugins/recall
 
 `plugins/recall/` is this repo's `agy`-native plugin folder: `plugin.json`, `mcp_config.json` (registering `recall-mcp` over stdio) and a `skills/` symlink to the same `skills/` directory the other hosts use — one skill source, no duplicate content. `agy plugin install` copies that registration into `agy`'s own local config (`~/.gemini/config/plugins/recall/`); it is **not** a live link back to the clone. **To update:** `git pull`, then re-run `agy plugin install ./recall/plugins/recall`. Run `agy plugin validate ./recall/plugins/recall` first to confirm the folder is well-formed.
 
-**Maintaining the manifests:** `.claude-plugin/plugin.json`, the root `plugin.json` and `pyproject.toml` must carry the same version (enforced by `tests/test_plugin_packaging.py`), and skills live only in `skills/<name>/SKILL.md`. Validate with `claude plugin validate .`, `hermes plugins validate .` and `agy plugin validate ./plugins/recall`.
+**Maintaining the manifests:** `.claude-plugin/plugin.json`, `plugins/hermes/plugin.json` and `pyproject.toml` must carry the same version, and `plugins/hermes/skills/` must be a byte-for-byte copy of `skills/` (both enforced by `tests/test_plugin_packaging.py`; refresh it with `rm -r plugins/hermes/skills && cp -r skills plugins/hermes/skills`). Skills are authored only in `skills/<name>/SKILL.md`. Validate with `claude plugin validate .`, `hermes plugins validate ./plugins/hermes` and `agy plugin validate ./plugins/recall`.
 
 ### CLI, standalone
 
@@ -257,7 +257,7 @@ The plugin ships three skills (`skills/`), one per job:
 
 ```
 skills/{recall-search,recall-code,recall-ingest}/SKILL.md   # the skills shipped by every plugin host
-plugin.json, mcp.json                 # Hermes portable package (Agent Plugins v1)
+plugins/hermes/                       # Hermes portable package (Agent Plugins v1; skills/ is a copy of ../../skills)
 .claude-plugin/                       # Claude Code plugin + marketplace
 plugins/recall/                       # Antigravity plugin (skills/ is a symlink to ../../skills)
 src/recall/

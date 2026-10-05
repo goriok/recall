@@ -47,7 +47,7 @@ Quatro limitações do código anterior moldaram a solução. O ID do ponto depe
 
 - O MCP continua em stdio nos dois escopos (Qdrant embutido e servidor) e expõe `search_docs` (recusa `code.*`), `search_code`, `explain_architecture` e `list_sources`, que lista coleções, pontos, modelo, arquivos e data do último ingest sem devolver caminhos absolutos.
 - O plugin entrega três skills, cada uma com gatilho e fluxo próprios: `recall-search` (docs e referência das tools), `recall-code` (navegar código) e `recall-ingest` (configurar, indexar e diagnosticar).
-- As skills vivem em `skills/` e são compartilhadas por todos os hosts: Claude Code (`.claude-plugin/`), Hermes (pacote portátil Agent Plugins v1, `plugin.json` + `mcp.json` na raiz) e `agy` (`plugins/recall/skills`, um symlink). O Hermes repassa ao servidor MCP só um subconjunto seguro do ambiente, que inclui `HOME`, e por isso o próprio `recall` lê o `.env` global.
+- As skills vivem em `skills/` e são compartilhadas por todos os hosts: Claude Code (`.claude-plugin/`), Hermes (pacote portátil Agent Plugins v1 em `plugins/hermes/`, com cópia real das skills porque o Hermes copia o subdiretório e quebraria um symlink) e `agy` (`plugins/recall/skills`, um symlink). O pacote do Hermes fica fora da raiz porque o Hermes co-instala as dependências Python de qualquer plugin com `pyproject.toml` na raiz, e o `mcp<2` do recall conflita com o `mcp==2.0.0` dele. O Hermes repassa ao servidor MCP só um subconjunto seguro do ambiente, que inclui `HOME`, e por isso o próprio `recall` lê o `.env` global.
 
 ## Consequências
 
