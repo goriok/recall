@@ -41,7 +41,7 @@ Python vira chunks por função/método/classe; Go, JavaScript e Rust viram chun
 ```bash
 recall ingest my-backend
 recall ingest --all
-recall ingest --all --prune      # também remove coleções de tópicos que sumiram
+recall ingest --all --prune      # remove coleções de tópicos que sumiram: pede confirmação (--yes pula) e não roda se algum projeto falhou ou se o diretório da fonte não existe
 recall ingest my-backend --recreate   # obrigatório ao trocar de provedor de embeddings
 ```
 

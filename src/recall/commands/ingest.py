@@ -7,11 +7,11 @@ from rich.progress import track
 
 from recall.adapters.openai_embedding_provider import EmbeddingProviderError
 from recall.adapters.qdrant_vector_store import QdrantVectorStore
-from recall.config import Config, ConfigError, find_config, load_config
+from recall.config import CODE_COLLECTION_PREFIX, Config, ConfigError, find_config, load_config
 from recall.discovery import DiscoveryError
 from recall.embeddings import ProviderResolver
 from recall.indexer import IndexReport, index_project
-from recall.meta import ModelMismatchError, delete_meta
+from recall.meta import META_COLLECTION, ModelMismatchError, delete_meta
 from recall.qdrant_guard import ensure_qdrant
 
 console = Console()
@@ -31,10 +31,28 @@ def _open_store(config: Config) -> QdrantVectorStore:
 
 
 def _orphan_collections(config: Config, vector_store: QdrantVectorStore) -> list[str]:
+    """Collections of topics that vanished from a source that is still readable.
+
+    A source whose root is missing (unmounted, renamed, mistyped) or that now discovers no
+    topics at all proves nothing about its topics, so its collections are never reported.
+    """
+    discovered = {p.collection for p in config.discover_projects()}
+    verifiable = {
+        source.resolved_root.parent.name
+        for source in config.sources
+        if source.resolved_root.is_dir()
+        and any(name.startswith(f"{source.resolved_root.parent.name}.") for name in discovered)
+    }
     known = {p.collection for p in config.all_projects()}
-    prefixes = tuple(f"{prefix}." for prefix in config.source_prefixes())
+    prefixes = tuple(f"{prefix}." for prefix in verifiable)
     return sorted(
-        c.name for c in vector_store.list_collections() if c.name.startswith(prefixes) and c.name not in known
+        c.name
+        for c in vector_store.list_collections()
+        if prefixes
+        and c.name.startswith(prefixes)
+        and c.name not in known
+        and c.name != META_COLLECTION
+        and not c.name.startswith(CODE_COLLECTION_PREFIX)
     )
 
 
@@ -43,6 +61,7 @@ def ingest(
     all_projects: bool = typer.Option(False, "--all", help="Ingest all configured projects"),
     recreate: bool = typer.Option(False, "--recreate", help="Drop and recreate collection before indexing"),
     prune: bool = typer.Option(False, "--prune", help="With --all, also drop collections of topics that no longer exist"),
+    yes: bool = typer.Option(False, "--yes", "-y", help="Skip the confirmation prompt of --prune"),
 ):
     """Index project docs and code repos into Qdrant."""
     try:
@@ -101,13 +120,18 @@ def ingest(
                 console.print(f"  [yellow]⚠[/yellow] {warning}")
 
         if all_projects:
-            for name in _orphan_collections(config, vector_store):
-                if prune:
+            orphans = _orphan_collections(config, vector_store)
+            for name in orphans:
+                console.print(f"[yellow]⚠[/yellow] orphan collection (topic gone): {name}")
+            if orphans and not prune:
+                console.print("  [dim]use --prune to drop them[/dim]")
+            elif orphans and failures:
+                console.print("[yellow]⚠[/yellow] not pruning: some projects failed in this run")
+            elif orphans and (yes or typer.confirm(f"Drop {len(orphans)} orphan collection(s)? This cannot be undone.")):
+                for name in orphans:
                     vector_store.delete_collection(name)
                     delete_meta(vector_store, name)
                     console.print(f"[red]✗[/red] pruned orphan collection: {name}")
-                else:
-                    console.print(f"[yellow]⚠[/yellow] orphan collection (topic gone): {name} — use --prune to drop it")
     finally:
         vector_store.close()
 

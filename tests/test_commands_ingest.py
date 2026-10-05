@@ -182,26 +182,87 @@ def test_ingest_reports_project_failure_and_exits_nonzero_after_the_rest(tmp_pat
     assert "good: 1 chunks indexed" in result.output
 
 
-def test_ingest_all_warns_about_orphan_collections_and_prune_drops_them(tmp_path):
+def _ctx_config(tmp_path):
     topics = tmp_path / "ctx" / "topics"
     (topics / "live").mkdir(parents=True)
     (topics / "live" / "a.md").write_text("# A\n\nbody\n")
-    config = Config(qdrant=QdrantConfig(path=str(tmp_path / "q")), sources=[SourceConfig(root=str(topics))])
+    return Config(qdrant=QdrantConfig(path=str(tmp_path / "q")), sources=[SourceConfig(root=str(topics))])
 
-    def seeded():
-        store = FakeVectorStore()
-        for name in ("ctx.live", "ctx.gone", "unrelated"):
-            store.recreate_collection(name, 4)
-        return store
 
-    warned, _, store = _run(config, ["ingest", "--all"], store=seeded())
-    assert "orphan collection (topic gone): ctx.gone" in warned.output
-    assert "ctx.gone" in store.collections and "unrelated" not in warned.output
+def _seeded(*names):
+    store = FakeVectorStore()
+    for name in names:
+        store.recreate_collection(name, 4)
+    return store
 
-    pruned, _, store = _run(config, ["ingest", "--all", "--prune"], store=seeded())
-    assert "pruned orphan collection: ctx.gone" in pruned.output
-    assert "ctx.gone" not in store.collections
-    assert {"ctx.live", "unrelated"} <= set(store.collections)
+
+def test_ingest_all_only_warns_about_orphans_without_prune(tmp_path):
+    result, _, store = _run(_ctx_config(tmp_path), ["ingest", "--all"], store=_seeded("ctx.live", "ctx.gone", "unrelated"))
+
+    assert "orphan collection (topic gone): ctx.gone" in result.output
+    assert "use --prune" in result.output
+    assert "ctx.gone" in store.collections and "unrelated" not in result.output
+
+
+def test_prune_asks_for_confirmation_and_aborts_on_no(tmp_path):
+    result, _, store = _run(_ctx_config(tmp_path), ["ingest", "--all", "--prune"], store=_seeded("ctx.live", "ctx.gone"))
+
+    assert "Drop 1 orphan collection(s)?" in result.output
+    assert "ctx.gone" in store.collections
+
+
+def test_prune_with_yes_drops_orphans_and_their_metadata_only(tmp_path):
+    from recall.meta import read_meta, write_meta
+
+    store = _seeded("ctx.live", "ctx.gone", "unrelated", "code.ctx")
+    write_meta(store, "ctx.gone", "m", 4)
+    write_meta(store, "unrelated", "m", 4)
+
+    result, _, store = _run(_ctx_config(tmp_path), ["ingest", "--all", "--prune", "--yes"], store=store)
+
+    assert "pruned orphan collection: ctx.gone" in result.output
+    assert "ctx.gone" not in store.collections and read_meta(store, "ctx.gone") is None
+    assert {"ctx.live", "unrelated", "code.ctx", "recall-meta"} <= set(store.collections)
+    assert read_meta(store, "unrelated") is not None
+
+
+def test_prune_never_runs_when_a_project_failed_in_the_same_run(tmp_path):
+    def indexer(project, **kwargs):
+        raise DiscoveryError("no files")
+
+    result, _, store = _run(
+        _ctx_config(tmp_path), ["ingest", "--all", "--prune", "--yes"],
+        store=_seeded("ctx.live", "ctx.gone"), indexer=indexer,
+    )
+
+    assert "not pruning: some projects failed" in result.output
+    assert "ctx.gone" in store.collections
+
+
+def test_a_missing_source_directory_never_marks_its_collections_as_orphans(tmp_path):
+    config = Config(
+        qdrant=QdrantConfig(path=str(tmp_path / "q")),
+        sources=[SourceConfig(root=str(tmp_path / "unmounted" / "topics"))],
+    )
+    store = _seeded("unmounted.auth", "unmounted.kongs")
+
+    result, _, store = _run(config, ["ingest", "--all", "--prune", "--yes"], store=store)
+
+    assert "orphan" not in result.output and "pruned" not in result.output
+    assert {"unmounted.auth", "unmounted.kongs"} <= set(store.collections)
+
+
+def test_a_source_that_discovers_no_topics_at_all_never_prunes(tmp_path):
+    topics = tmp_path / "typo-ctx" / "topics"
+    topics.mkdir(parents=True)
+    config = Config(
+        qdrant=QdrantConfig(path=str(tmp_path / "q")),
+        sources=[SourceConfig(root=str(topics), glob="**/*.nomatch")],
+    )
+
+    result, _, store = _run(config, ["ingest", "--all", "--prune", "--yes"], store=_seeded("typo-ctx.auth"))
+
+    assert "pruned" not in result.output and "typo-ctx.auth" in store.collections
 
 
 def test_ingest_without_all_does_not_look_for_orphans(tmp_path):

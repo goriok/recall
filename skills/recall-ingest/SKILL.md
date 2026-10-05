@@ -10,7 +10,7 @@ O índice só existe depois de `recall ingest`, e ele é idempotente: reingerir 
 ## Peça confirmação antes de
 
 - Editar o `~/.config/recall/recall.toml` global.
-- `recall ingest --recreate` (apaga e refaz a coleção) e `recall ingest --all --prune` (apaga coleções de tópicos que sumiram).
+- `recall ingest --recreate` (apaga e refaz a coleção) e `recall ingest --all --prune` (apaga coleções de tópicos que sumiram; pede confirmação e nunca roda se um projeto falhou ou se o diretório da fonte não existe).
 - Trocar o provedor de embeddings de uma coleção que já existe (exige `--recreate`).
 
 Rodar `recall ingest <nome>` numa fonte nova ou `recall ingest --all` sem `--recreate` é seguro e repetível. Nunca imprima nem grave valores de chaves de API: o `recall.toml` guarda só o nome da variável (`api_key_env`).

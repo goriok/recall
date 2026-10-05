@@ -197,7 +197,7 @@ Symbol-level chunking for Go (`.go`), JavaScript (`.js .mjs .cjs .jsx`) and Rust
 # Ingest
 recall ingest my-project                         # one project or repo by name
 recall ingest --all                              # explicit + auto-discovered + code repos
-recall ingest --all --prune                      # also drop collections of topics that disappeared
+recall ingest --all --prune                      # also drop collections of topics that disappeared (asks first; --yes skips; never runs if a project failed or a source directory is missing)
 recall ingest my-project --recreate              # rebuild (required after changing the embedding model)
 
 # Search
