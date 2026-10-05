@@ -107,7 +107,7 @@ graph LR
 (`core/interfaces.py`) — `adapters/qdrant_vector_store.py`, `adapters/ollama_embedding_provider.py`
 and `adapters/openai_embedding_provider.py` are the concrete implementations, injected per project
 at the command/MCP layer (`embeddings.py`). `recall-meta` records which model built each
-collection. See `docs/madrs/MADR-003-code-repos-line-metadata-and-remote-embeddings.md`.
+collection. See [MADR-003](docs/madrs/MADR-003-code-repos-line-metadata-and-remote-embeddings.md) and the runbooks in [`docs/runbooks/`](docs/runbooks/).
 
 ## Configuration
 
@@ -139,6 +139,8 @@ RECALL_EMBEDDING_API_KEY=<API_KEY>
 ```
 
 Optional: `RECALL_EMBEDDING_PROVIDER` (`openai` is implied by a base URL), `RECALL_EMBEDDING_API_KEY_ENV` (name of another variable holding the key) and `RECALL_EMBEDDING_BATCH_SIZE` (at most 32; larger values are rejected). The same settings can be written as an `[embedding]` table (`provider`, `model`, `base_url`, `api_key_env`, `batch_size`), but then the endpoint lives in a file you may commit — prefer the `.env`.
+
+A `recall.toml` found in a project directory is treated as untrusted: it can only point at remote endpoints that your global setup already declares (the host in `RECALL_EMBEDDING_BASE_URL`, hosts in the global `recall.toml`, `[security] trusted_hosts` or `RECALL_TRUSTED_HOSTS`), and only with the key variable the global file pairs with that host. See [MADR-003](docs/madrs/MADR-003-code-repos-line-metadata-and-remote-embeddings.md).
 
 `[[sources]]`, `[[projects]]` and `[[repos]]` accept their own `[x.embedding]` table to override the global one (for example `provider = "ollama"` for personal content). Vectors from different providers are not comparable: changing a collection's model requires `recall ingest <project> --recreate`.
 
@@ -187,7 +189,7 @@ globs = ["**/*.py", "**/*.go", "**/*.ts", "**/*.md"]
 enabled = true           # needs the graphify CLI; degrades with a warning if missing
 ```
 
-Symbol-level chunking for Go (`.go`), JavaScript (`.js .mjs .cjs .jsx`) and Rust (`.rs`) needs the optional grammars: `uv tool install --from '.[code]' recall`. Without them those files fall back to line windows, with one warning. `target/` and `vendor/` are excluded by default.
+Symbol-level chunking for Go (`.go`), JavaScript (`.js .mjs .cjs .jsx`) and Rust (`.rs`) needs the optional grammars: `uv tool install --from "recall[code] @ git+https://github.com/goriok/recall.git" recall`. Without them those files fall back to line windows, with one warning. `target/` and `vendor/` are excluded by default.
 
 `path_exclude` filters by path component (`node_modules`, `.git`, ...); `exclude` only names topic subfolders to skip during auto-discovery. Files matched by `.gitignore`, symlinks leaving the root, binaries, files above `max_file_bytes` and secrets-looking names (`.env`, `*.pem`, `*.key`, `*credentials*`, `*secret*`) are never indexed.
 
@@ -230,7 +232,7 @@ The plugin ships three skills (`skills/`), one per job:
 
 ### MCP Configuration
 
-**Claude Code** — install as a plugin (see [Quick Start](#as-a-claude-code-plugin)), or add manually to `~/.claude/settings.json`:
+**Claude Code** — install as a plugin (see [Quick Start](#as-a-plugin-claude-code-hermes-antigravity)), or add manually to `~/.claude/settings.json`:
 ```json
 "mcpServers": {
   "recall": { "type": "stdio", "command": "recall-mcp" }

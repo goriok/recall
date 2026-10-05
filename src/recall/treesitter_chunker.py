@@ -157,7 +157,7 @@ def _parser(language: str):
             _warned.add(language)
             logger.warning(
                 "tree-sitter support for %s is not installed — falling back to line windows "
-                "(install with: uv tool install --from '.[code]' recall)", language,
+                "(reinstall with: uv tool install --from \"recall[code] @ git+https://github.com/goriok/recall.git\" recall)", language,
             )
         return None
     return Parser(Language(module.language()))

@@ -52,7 +52,7 @@ RECALL_EMBEDDING_API_KEY=<API_KEY>
 
 ## Linguagens e Graphify
 
-- Python, Go, JavaScript e Rust viram chunks por símbolo (Go, JS e Rust precisam do extra: `uv tool install --from '.[code]' recall`); as demais viram janelas de linhas. Liste as extensões em `globs`: o padrão é só `**/*.py` e `**/*.md`.
+- Python, Go, JavaScript e Rust viram chunks por símbolo (Go, JS e Rust precisam do extra `code`: `uv tool install --from "recall[code] @ git+https://github.com/goriok/recall.git" recall`); as demais viram janelas de linhas. Liste as extensões em `globs`: o padrão é só `**/*.py` e `**/*.md`.
 - O Graphify (`graphify` no PATH) é opcional e acrescenta comunidade, god node e símbolos relacionados. Sem ele o ingest continua com um aviso.
 - `target/`, `vendor/`, `node_modules/`, `.venv/` e `graphify-out/` são excluídos por padrão; arquivos do `.gitignore`, segredos (`.env`, `*.pem`, `*credentials*`), binários e arquivos acima de 512 KB não entram.
 
@@ -64,9 +64,9 @@ RECALL_EMBEDDING_API_KEY=<API_KEY>
 | `no files under ... match` | `globs` não casam nada | revisar `globs` e `path_exclude` |
 | `was indexed with ... re-run 'recall ingest --recreate'` | provedor de embeddings mudou | confirmar com o usuário e rodar `--recreate` |
 | `the selected collections use different embedding models` | busca ampla misturando modelos | restringir com `project` ou `repo` |
-| `refusing to send $VAR to untrusted host` | `recall.toml` local aponta para um host que o global não declara | pôr o endpoint em `RECALL_EMBEDDING_BASE_URL` no `.env` global, ou declarar o host no `recall.toml` global, em `[security] trusted_hosts`, ou em `RECALL_TRUSTED_HOSTS` |
+| `refusing to talk to untrusted host` | `recall.toml` local aponta para um host que o global não declara | pôr o endpoint em `RECALL_EMBEDDING_BASE_URL` no `.env` global, ou declarar o host no `recall.toml` global, em `[security] trusted_hosts`, ou em `RECALL_TRUSTED_HOSTS` |
 | `environment variable RECALL_EMBEDDING_API_KEY is not set` | chave ausente | `RECALL_EMBEDDING_API_KEY=<API_KEY>` em `~/.config/recall/.env` (vale para Claude Code, Hermes e agy) |
 | `embedding endpoint returned HTTP 400` | `batch_size` acima de 32 ou modelo inválido | usar `batch_size <= 32` |
 | `another process (recall-mcp?) has the embedded Qdrant store open` | o store embutido só abre em um processo por vez | fechar o outro processo, ou usar Qdrant servidor |
 | `graph metadata unavailable` | `graphify` ausente, timeout ou erro | instalar o Graphify; o ingest segue sem grafo |
-| `tree-sitter support for go is not installed` | extra `code` ausente | `uv tool install --from '.[code]' recall` |
+| `tree-sitter support for go is not installed` | extra `code` ausente | reinstalar com `uv tool install --from "recall[code] @ git+https://github.com/goriok/recall.git" recall` |

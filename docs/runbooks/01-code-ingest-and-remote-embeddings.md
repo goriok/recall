@@ -1,19 +1,54 @@
-# Runbook 01 — Ingest de código, embeddings remotos e Qdrant servidor
+# Runbook 01 — Operar o ingest: embeddings remotos, repositórios de código e Qdrant servidor
 
-## 1. Configurar os embeddings remotos
+Operação do dia a dia depois da instalação; a instalação e o primeiro índice estão no [runbook 02](02-install-plugin-and-first-index.md).
 
-Mantenha o endpoint e a chave fora de qualquer repositório, no arquivo global `~/.config/recall/.env`. O `recall` lê desse arquivo só as variáveis `RECALL_*` (nunca as demais, nunca um `.env` do diretório atual), inclusive quando roda dentro do `recall-mcp` de qualquer host:
-
-```bash
-# ~/.config/recall/.env
-RECALL_EMBEDDING_BASE_URL=https://embeddings.example.com/v1
-RECALL_EMBEDDING_MODEL=nomic-embed-text-v1-5
-RECALL_EMBEDDING_API_KEY=<API_KEY>
+```
++------------------------------+
+| 1. Embeddings remotos        |
++------------------------------+
+               |
+               v
++------------------------------+
+| 2. Registrar uma fonte       |
++------------------------------+
+               |
+               v
++------------------------------+
+| 3. Ingerir                   |
++------------------------------+
+               |
+               v
++------------------------------+
+| 4. Buscar                    |
++------------------------------+
+               |
+               v
++------------------------------+
+| 5. Qdrant servidor (opcional)|
++------------------------------+
+               |
+               v
++------------------------------+
+| 6. Testes                    |
++------------------------------+
 ```
 
-Com isso o `recall.toml` não precisa de tabela `[embedding]`. Opcionais: `RECALL_EMBEDDING_PROVIDER`, `RECALL_EMBEDDING_API_KEY_ENV` (nome de outra variável que guarda a chave) e `RECALL_EMBEDDING_BATCH_SIZE`. O host de `RECALL_EMBEDDING_BASE_URL` passa a ser confiável para qualquer `recall.toml` local; um host diferente precisa estar no `recall.toml` global, em `[security] trusted_hosts` ou em `RECALL_TRUSTED_HOSTS` (lista separada por vírgula), e hosts remotos exigem https.
+## 1. Embeddings remotos
 
-O lote do endpoint é no máximo 32 (`batch_size` acima disso é rejeitado). Para conteúdo pessoal, sobrescreva por fonte:
+A configuração básica (`RECALL_EMBEDDING_BASE_URL`, `RECALL_EMBEDDING_MODEL`, `RECALL_EMBEDDING_API_KEY` em `~/.config/recall/.env`) está no [runbook 02](02-install-plugin-and-first-index.md#3-configurar-embeddings). Aqui ficam as variáveis opcionais e as regras de confiança.
+
+```bash
+RECALL_EMBEDDING_PROVIDER=openai
+RECALL_EMBEDDING_API_KEY_ENV=MINHA_VARIAVEL
+RECALL_EMBEDDING_BATCH_SIZE=16
+RECALL_TRUSTED_HOSTS=outro-host.example.com,qdrant.interno.example.com
+```
+
+`RECALL_EMBEDDING_API_KEY_ENV` indica outra variável que guarda a chave, `RECALL_EMBEDDING_BATCH_SIZE` aceita no máximo 32 e `RECALL_TRUSTED_HOSTS` é uma lista separada por vírgula.
+
+Um `recall.toml` de projeto só pode usar um endereço remoto que o `.env` global (`RECALL_EMBEDDING_BASE_URL`), o `recall.toml` global, `[security] trusted_hosts` ou `RECALL_TRUSTED_HOSTS` já declarem, e só pode usar com ele a variável de chave que o arquivo global associa àquele host; hosts remotos exigem https.
+
+Para conteúdo pessoal, sobrescreva o provedor por fonte:
 
 ```toml
 [[sources]]
@@ -23,7 +58,9 @@ provider = "ollama"
 model = "nomic-embed-text"
 ```
 
-## 2. Registrar um repositório de código
+## 2. Registrar uma fonte
+
+Código usa `[[repos]]` e vira a coleção `code.<name>`:
 
 ```toml
 [[repos]]
@@ -34,7 +71,14 @@ globs = ["**/*.py", "**/*.go", "**/*.ts", "**/*.md"]
 enabled = true
 ```
 
-Python vira chunks por função/método/classe; Go, JavaScript e Rust viram chunks por símbolo (precisam das gramáticas opcionais: `uv tool install --from '.[code]' recall`); as demais extensões viram janelas de 60 linhas com overlap de 10. Graphify é opcional (`uv tool install graphifyy`); sem ele o ingest segue sem comunidade, god node e símbolos relacionados.
+Documentação em Markdown usa `[[sources]]`, com uma coleção por subpasta de `topics/`:
+
+```toml
+[[sources]]
+root = "~/sources/acme/ctx-docs/topics"
+```
+
+Python vira chunks por função, método e classe; Go, JavaScript e Rust viram chunks por símbolo (precisam do extra `code`, passo 1 do runbook 02); as demais extensões viram janelas de 60 linhas com overlap de 10. O Graphify é opcional (`uv tool install graphifyy`), e sem ele o ingest segue sem comunidade, god node e símbolos relacionados.
 
 ## 3. Ingerir
 
@@ -93,9 +137,11 @@ RECALL_TEST_EMBEDDING_URL="https://embeddings.example.com/v1" RECALL_EMBEDDING_A
 | `embedding endpoint returned HTTP 400` | `batch_size` acima de 32 ou modelo inválido | usar `batch_size <= 32` |
 | `HTTP 404 model_not_found` | nome do modelo errado | `model = "nomic-embed-text-v1-5"` |
 | `environment variable RECALL_EMBEDDING_API_KEY is not set` | chave ausente | colocar `RECALL_EMBEDDING_API_KEY=<API_KEY>` em `~/.config/recall/.env` (vale para todos os hosts, inclusive o Hermes, que filtra o ambiente do servidor MCP) |
-| `refusing to send $VAR to untrusted host` | `recall.toml` local aponta para um host não declarado no global | declarar o host no `recall.toml` global, em `[security] trusted_hosts`, ou exportar `RECALL_TRUSTED_HOSTS` |
+| `refusing to talk to untrusted host` | `recall.toml` local aponta para um host que o global não declara | declarar o host no `.env` global, no `recall.toml` global, em `[security] trusted_hosts` ou em `RECALL_TRUSTED_HOSTS` |
+| `$VAR is not authorized for` | o `recall.toml` local pede, para um host confiável, outra variável de chave que a do arquivo global | usar a variável que o arquivo global associa ao host |
+| `not pruning: some projects failed` | `--prune` não roda quando um projeto falhou na mesma execução | corrigir o erro listado e repetir |
 | `was indexed with ... re-run 'recall ingest --recreate'` | coleção criada com outro modelo | `recall ingest <projeto> --recreate` |
 | `another process (recall-mcp?) has the embedded Qdrant store open` | lock exclusivo do store embutido | fechar o outro processo ou usar Qdrant servidor |
 | `graph metadata unavailable` | `graphify` ausente, timeout ou erro | instalar o Graphify; o ingest continua sem grafo |
 | `no files under ... match` | glob não casa nenhum arquivo | revisar `globs`/`glob` e `path_exclude` |
-| `tree-sitter support for go is not installed` | gramáticas opcionais ausentes | `uv tool install --from '.[code]' recall` (os arquivos foram indexados como janelas de linhas) |
+| `tree-sitter support for go is not installed` | gramáticas opcionais ausentes | reinstalar o CLI com `recall[code]` (runbook 02, passo 1); os arquivos foram indexados como janelas de linhas |

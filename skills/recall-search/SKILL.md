@@ -76,4 +76,4 @@ no `recall.toml`, ele não aparece na busca — configurar é fora do escopo des
 
 O `recall-mcp` lê `~/.config/recall/.env` (apenas variáveis `RECALL_*`), então o endpoint e a chave de embeddings remotos ficam ali e valem igualmente no Claude Code, no Hermes (que filtra o ambiente do servidor MCP) e no agy.
 
-Um `recall.toml` local só pode enviar uma chave de ambiente (`api_key_env`) para um host que o `recall.toml` global do usuário já declare, ou que esteja em `RECALL_TRUSTED_HOSTS`. Se a busca falhar com "refusing to send ... to untrusted host", é essa trava.
+Um `recall.toml` de projeto é tratado como não confiável: ele só pode usar um endpoint remoto (embeddings ou Qdrant) que o `.env` global (`RECALL_EMBEDDING_BASE_URL`), o `recall.toml` global, `[security] trusted_hosts` ou `RECALL_TRUSTED_HOSTS` já declarem, e só com a variável de chave que o arquivo global associa àquele host. Se a busca falhar com "refusing to talk to untrusted host" ou "is not authorized for", é essa trava.
