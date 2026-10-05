@@ -35,7 +35,7 @@ Quatro limitações do código anterior moldaram a solução. O ID do ponto depe
 
 - **`OpenAIEmbeddingProvider`** fala com qualquer endpoint `/embeddings` compatível com OpenAI: lote máximo de 32, retry com backoff exponencial só para 429/5xx, sem retry em 400/401/404, e exceções reescritas para que a chave nunca apareça em `str` ou `repr`. O Ollama continua como padrão e como escolha para conteúdo pessoal, e o provedor é configurável por `[[sources]]`, `[[repos]]` e `[[projects]]`.
 - **Configuração fora dos repositórios**: `RECALL_EMBEDDING_BASE_URL`, `RECALL_EMBEDDING_MODEL` e `RECALL_EMBEDDING_API_KEY` (mais `RECALL_EMBEDDING_PROVIDER`, `RECALL_EMBEDDING_API_KEY_ENV` e `RECALL_EMBEDDING_BATCH_SIZE`) vêm do ambiente ou de `~/.config/recall/.env`. O `recall` lê desse arquivo só variáveis `RECALL_*` e nunca um `.env` do diretório atual; um `recall.toml` pode sobrescrever.
-- **Qdrant servidor** ganha `prefer_grpc`, `grpc_port`, `https` e `api_key_env`; o `qdrant_guard` só sobe o Podman para `localhost` em http.
+- **Qdrant servidor** ganha `prefer_grpc`, `grpc_port`, `https` e `api_key_env`; o `qdrant_guard` só sobe o Qdrant local para `http://localhost:6333`, via `QdrantService`, e `recall server enable` o mantém ligado entre reinícios com uma unit systemd de usuário.
 
 ### Confiança em `recall.toml` local
 

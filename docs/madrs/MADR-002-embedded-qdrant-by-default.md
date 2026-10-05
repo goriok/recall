@@ -37,7 +37,8 @@ Ciclo de vida da conexão precisou ficar explícito por causa do lock exclusivo 
 
 O modo embutido continua o padrão. Mudanças posteriores, registradas em [MADR-003](MADR-003-code-repos-line-metadata-and-remote-embeddings.md):
 
-- `qdrant_guard.ensure_qdrant` só sobe o Podman para `localhost` em http; para qualquer outro host ou em https ele falha com uma mensagem, em vez de tentar subir um container local.
+- `qdrant_guard.ensure_qdrant` só sobe o Qdrant para `http://localhost:6333`, e agora o faz com `QdrantService` (um `podman run`, sem `docker-compose.yml`); para qualquer outro host, porta ou https ele falha com uma mensagem. O container publica só em `127.0.0.1`, e o `docker-compose.yml` passou a ser opcional.
+- `recall server start|stop|restart|status|logs` gerenciam esse container e `recall server enable|disable` instalam e removem uma unit systemd de usuário (`Restart=always`, com lingering) para que ele volte após reinício; os dados ficam no volume `recall_qdrant_data`.
 - `[qdrant]` aceita `prefer_grpc`, `grpc_port`, `https` e `api_key_env`.
 - Um `recall ingest` com o `recall-mcp` aberto no mesmo store embutido termina com uma mensagem que aponta para o modo servidor.
 - O ingest avisa quando uma coleção passa de 15 mil pontos, antes do limite de cerca de 20 mil.

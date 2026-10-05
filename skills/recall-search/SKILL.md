@@ -69,7 +69,7 @@ indexado use antes de tratar o conteúdo como definitivo.
 
 ## Pré-requisito
 
-No modo embutido (padrão) não há servidor para subir, mas só um processo por vez abre o store: fechar o `recall-mcp` antes de `recall ingest` ou usar Qdrant servidor. Em modo servidor local (http em `localhost`), `recall search`/`recall ingest` sobem o Qdrant sozinhos via `podman compose up -d`. Com embeddings remotos, a chave vai em `RECALL_EMBEDDING_API_KEY` no `~/.config/recall/.env`. Se um projeto ainda não está configurado
+No modo embutido (padrão) não há servidor para subir, mas só um processo por vez abre o store: fechar o `recall-mcp` antes de `recall ingest` ou usar Qdrant servidor. Em modo servidor local (http em `localhost:6333`), qualquer comando do `recall` sobe o Qdrant sozinho (um container Podman só em `127.0.0.1`); `recall server enable` o mantém ligado depois de reiniciar a máquina. Com embeddings remotos, a chave vai em `RECALL_EMBEDDING_API_KEY` no `~/.config/recall/.env`. Se um projeto ainda não está configurado
 no `recall.toml`, ele não aparece na busca — configurar é fora do escopo desta skill.
 
 ## Ambiente do servidor MCP

@@ -4,37 +4,48 @@ Trocar o Qdrant embutido por um servidor, para acesso concorrente (CLI e `recall
 
 ```
 +------------------------------+
-| 1. Subir o servidor          |
+| 1. Subir o servidor local    |
 +------------------------------+
                |
                v
 +------------------------------+
-| 2. Apontar o recall para ele |
+| 2. Mantê-lo após reinício    |
 +------------------------------+
                |
                v
 +------------------------------+
-| 3. Reindexar no servidor     |
+| 3. Apontar o recall para ele |
 +------------------------------+
                |
                v
 +------------------------------+
-| 4. Conferir                  |
+| 4. Reindexar no servidor     |
++------------------------------+
+               |
+               v
++------------------------------+
+| 5. Conferir                  |
 +------------------------------+
 ```
 
-## 1. Subir o servidor
-
-Num clone do repositório, o `docker-compose.yml` sobe um Qdrant local nas portas 6333 (HTTP) e 6334 (gRPC):
+## 1. Subir o servidor local
 
 ```bash
-podman compose -f docker-compose.yml up -d
-curl -s localhost:6333/healthz
+recall server start
 ```
 
-Para um servidor já existente, pule este passo; o `recall` só inicia o container sozinho para `localhost` em http.
+Cria o container do Qdrant com o Podman (publicado só em `127.0.0.1`, portas 6333 e 6334), espera ele responder e não faz nada se ele já estiver no ar; para usar um servidor que já existe em outra máquina, pule este passo e o próximo.
 
-## 2. Apontar o recall para ele
+## 2. Mantê-lo após reinício
+
+```bash
+recall server enable
+recall server status
+```
+
+Instala um serviço systemd de usuário com reinício automático e liga o lingering, de modo que o Qdrant volta depois de reiniciar o notebook e depois de uma queda do container, sem esperar você abrir uma sessão; `recall server disable` remove o serviço e mantém os dados no volume `recall_qdrant_data`.
+
+## 3. Apontar o recall para ele
 
 ```bash
 cat >> ~/.config/recall/.env <<'EOF'
@@ -44,17 +55,15 @@ EOF
 
 ```toml
 [qdrant]
-host = "qdrant.interno.example.com"
+host = "localhost"
 port = 6333
 prefer_grpc = true
 grpc_port = 6334
-https = true
-api_key_env = "RECALL_QDRANT_API_KEY"
 ```
 
-O `host` precisa estar declarado no `recall.toml` global, em `[security] trusted_hosts` ou em `RECALL_TRUSTED_HOSTS` se este `recall.toml` for de projeto, e a chave só é lida do `.env` global quando a variável começa com `RECALL_`.
+Para um servidor local não precisa de chave; para um servidor remoto acrescente `host`, `https = true` e `api_key_env = "RECALL_QDRANT_API_KEY"`, e o host precisa estar declarado no `recall.toml` global, em `[security] trusted_hosts` ou em `RECALL_TRUSTED_HOSTS` quando este `recall.toml` for de projeto; a chave só é lida do `.env` global quando a variável começa com `RECALL_`.
 
-## 3. Reindexar no servidor
+## 4. Reindexar no servidor
 
 ```bash
 recall ingest --all
@@ -62,7 +71,7 @@ recall ingest --all
 
 O índice do store embutido não é copiado para o servidor, então as coleções são criadas de novo; as do store embutido ficam em `~/.local/share/recall/qdrant` até você apagá-las.
 
-## 4. Conferir
+## 5. Conferir
 
 ```bash
 recall collections list
@@ -74,10 +83,14 @@ A lista deve mostrar as coleções do servidor com a contagem de pontos, e nenhu
 
 | Sintoma | Causa | Ação |
 |---|---|---|
-| `Qdrant at ... is not reachable` | servidor parado ou endereço errado, e o host não é `localhost` em http | conferir `host`, `port` e o `curl` do passo 1 |
-| `docker-compose.yml not found` | o container local é iniciado a partir de um clone | rodar o passo 1 dentro do clone |
-| `Podman not found` | Podman ausente | instalar o Podman ou usar um servidor existente |
+| `Qdrant at ... is not reachable` | o host não é `localhost:6333` em http, então o `recall` não o sobe sozinho | conferir `host` e `port`, ou `recall server start` para o local |
+| `port 6333 or 6334 is already in use` | outro processo ou o container antigo `recall_qdrant_1` usa as portas | `podman rm -f recall_qdrant_1` (os dados ficam no volume) ou parar o outro processo |
+| `the old compose container 'recall_qdrant_1' holds the ports` | `recall server enable` com o container antigo rodando | `podman rm -f recall_qdrant_1` e repetir o `enable` |
+| `podman not found` | Podman ausente | instalar o Podman ou usar um servidor existente |
+| `systemctl not found` | `recall server enable` precisa de uma sessão systemd de usuário no Linux | no macOS ou sem systemd, usar `recall server start` a cada sessão |
+| depois de `recall server stop` o Qdrant volta sozinho | o serviço continua habilitado e volta no próximo boot ou login | `recall server disable` para desligar de vez |
+| `recall server status` mostra `lingering=False` | o serviço só inicia depois do seu login | `loginctl enable-linger $USER` ou repetir `recall server enable` |
 | `refusing to talk to untrusted host` | host do Qdrant não declarado no lado global | declarar em `[security] trusted_hosts` ou `RECALL_TRUSTED_HOSTS` |
 | `refusing to send $VAR to ... over plain http` | chave com `https = false` em host remoto | `https = true` |
 | a chave não chega ao servidor | a variável de `api_key_env` não começa com `RECALL_` e não está no ambiente do processo | renomear para `RECALL_QDRANT_API_KEY` no `.env` global |
-| `No results found.` depois de trocar para o servidor | as coleções ainda não existem no servidor | repetir o passo 3 |
+| `No results found.` depois de trocar para o servidor | as coleções ainda não existem no servidor | repetir o passo 4 |

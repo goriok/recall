@@ -7,7 +7,7 @@ Semantic search over project documentation and source code. RAG pipeline: markdo
 ## Tech Stack
 
 - **Python 3.12+** — Typer CLI, Rich output, httpx, FastMCP (stdio)
-- **Qdrant** — embedded by default (`qdrant-client` local mode, on-disk at `~/.local/share/recall/qdrant`, no server to run); optional server mode (`podman compose up -d`, port 6333) for concurrent access from multiple processes — see `docs/madrs/MADR-002-embedded-qdrant-by-default.md`
+- **Qdrant** — embedded by default (`qdrant-client` local mode, on-disk at `~/.local/share/recall/qdrant`, no server to run); optional server mode (`recall server start`, port 6333) for concurrent access from multiple processes — see `docs/madrs/MADR-002-embedded-qdrant-by-default.md`
 - **Embeddings** — Ollama (`nomic-embed-text`, 768 dims; truncates input at `max_chars`, default 1500) or a remote OpenAI-compatible endpoint (for example `nomic-embed-text-v1-5`, 768 dims, batch ≤ 32), configured per project and, preferably, through `RECALL_EMBEDDING_*` in `~/.config/recall/.env`
 - **uv** — install via `uv tool install --from . recall`
 
@@ -73,7 +73,7 @@ Skills live only in `skills/<name>/SKILL.md` (today `recall-search`, `recall-cod
 - **Go / JS / Rust chunking is tree-sitter, an optional extra** (`recall[code]`; also in the `dev` group so tests run against the real grammars). Symbol names are qualified (`Server.Start` from the Go receiver, `Calculator.run`, `Cache.lookup` from `impl Cache`; trait impls get a header named `Cache (impl Store)`). Doc comments, JSDoc and Rust `#[attributes]` that sit directly above a symbol (no blank line, first thing on their line) belong to its chunk; `def_line` is the declaration line without them, which is what Graphify reports. Files with unusual line separators (`\f`, lone `\r`, U+2028) fall back to windows because tree-sitter rows would not match `splitlines()`.
 - **Graphify is optional** — `graphify update --force` + `god-nodes --json` run as subprocesses with `GRAPHIFY_OUT` outside the repo and `cwd=<root>`; failures degrade to no graph metadata. `source_location` is `L<n>` of the `def`/`class` line, never the decorator, so chunks match on `def_line`.
 - **Embedded Qdrant holds an exclusive file lock** per `path` for as long as the client is open — only one process at a time. `mcp_server.py` builds the adapters once per process (module-level singleton) and reuses them; CLI commands `close()` explicitly in `finally` instead of relying on the GC.
-- **Qdrant auto-starts for local http servers only** — `qdrant_guard.ensure_qdrant()` calls `podman compose up -d` if a `localhost`/`127.0.0.1` http server is unreachable (remote or https hosts get an error instead); walks CWD upward to find `docker-compose.yml`, falling back to `~/.config/recall/docker-compose.yml` (placed there by `bootstrap.sh`). Not invoked at all when `[qdrant].host` is unset (embedded mode).
+- **Qdrant auto-starts for the local default port only** — `qdrant_guard.ensure_qdrant()` calls `QdrantService.start()` (a `podman run` of `qdrant/qdrant`, no compose file needed) if `http://localhost:6333` is unreachable; any other host, port or https gets an error instead. The container publishes on `127.0.0.1` only, and `recall server enable` installs a systemd user unit (`Restart=always`, `WantedBy=default.target`) plus lingering so it returns after reboots. Data lives in the Podman volume `recall_qdrant_data`, which survives `disable` and container removal; the old compose container `recall_qdrant_1` must be removed before `enable` because it holds the same ports; walks CWD upward to find `docker-compose.yml`, falling back to `~/.config/recall/docker-compose.yml` (placed there by `bootstrap.sh`). Not invoked at all when `[qdrant].host` is unset (embedded mode).
 - **Auto-discover precedence** — explicit `[[projects]]` names shadow auto-discovered dirs with the same name.
 - **Ollama client init** — use `ollama.Client(host=config.ollama_host)`, not `options={"host": ...}` (wrong API).
 - **Qdrant query API** — use `client.query_points()`, not deprecated `client.search()` (removed in qdrant-client ≥ 1.9).
@@ -88,6 +88,8 @@ Skills live only in `skills/<name>/SKILL.md` (today `recall-search`, `recall-cod
 
 ## Testing Rules
 
+- `tests/conftest.py` replaces `qdrant_service._default_run` and `server._probe_mcp` with functions that raise, so a unit test can never start a container or call systemd on the developer's machine; if a test trips it, patch `ensure_qdrant` at the consumer module or pass a fake `run` to `QdrantService`.
+
 - TDD: write failing test first, then implement.
 - No real network calls in tests — use `tests/fakes.py` (`FakeVectorStore`, `FakeEmbeddingProvider`) for anything touching `VectorStore`/`EmbeddingProvider`; mock at the application boundary (e.g. `index_project`, `semantic_search`) for command/MCP-layer tests.
 - Patch at the import site of the consumer, not the definition site.
@@ -101,7 +103,7 @@ Skills live only in `skills/<name>/SKILL.md` (today `recall-search`, `recall-cod
 
 ### Ask First
 - `recall ingest` or `recall ingest --all` (touches Qdrant collections)
-- `podman compose` commands (server mode only)
+- `recall server enable` / `disable` (installs or removes a systemd user service and may turn on lingering)
 - Changes to `~/.config/recall/recall.toml`
 
 ### Never

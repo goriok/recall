@@ -160,8 +160,17 @@ https = false
 api_key_env = "QDRANT_API_KEY"
 ```
 
-With a local `http` host, `recall` auto-starts a Qdrant server via `podman compose up -d` if port 6333 is
-unreachable (`docker-compose.yml`, requires Podman). Remote or https hosts are never auto-started.
+To run the server on your own machine, let `recall` manage a Podman container (it listens on `127.0.0.1` only):
+
+```bash
+recall server start      # starts it and waits until it answers; idempotent
+recall server enable     # systemd user service: comes back after a reboot or a crash
+recall server status     # reachability, container, autostart and lingering
+recall server disable    # removes the service, keeps the data volume
+recall server stop|restart|logs
+```
+
+With `host = "localhost"` on the default port 6333, any `recall` command also starts it on demand, with no clone or compose file. `enable` needs Linux with a systemd user session and turns on lingering so the service starts at boot, before you log in. Remote or https hosts are never auto-started.
 
 ### Projects
 
@@ -264,7 +273,8 @@ src/recall/
 ├── searcher.py                       # Semantic search (ports only)
 ├── meta.py                           # recall-meta: which model built each collection
 ├── embeddings.py                     # Per-project embedding provider resolution
-├── qdrant_guard.py                   # Auto-start local Qdrant via podman compose (local http only)
+├── qdrant_service.py                 # Local Qdrant container (Podman) + systemd user unit for reboots
+├── qdrant_guard.py                   # Starts that container on demand (local http, default port only)
 ├── mcp_server.py                     # FastMCP stdio server (search_docs, search_code, explain_architecture)
 ├── core/interfaces.py                # VectorStore, EmbeddingProvider ports
 ├── adapters/
