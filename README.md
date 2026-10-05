@@ -107,7 +107,7 @@ graph LR
 (`core/interfaces.py`) — `adapters/qdrant_vector_store.py`, `adapters/ollama_embedding_provider.py`
 and `adapters/openai_embedding_provider.py` are the concrete implementations, injected per project
 at the command/MCP layer (`embeddings.py`). `recall-meta` records which model built each
-collection. See [MADR-003](docs/madrs/MADR-003-code-repos-line-metadata-and-remote-embeddings.md) and the runbooks in [`docs/runbooks/`](docs/runbooks/).
+collection. See [MADR-003](docs/madrs/MADR-003-code-repos-line-metadata-and-remote-embeddings.md) and the step-by-step [runbooks](docs/README.md#runbooks).
 
 ## Configuration
 

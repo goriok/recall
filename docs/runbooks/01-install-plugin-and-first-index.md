@@ -1,4 +1,4 @@
-# Runbook 02 — Instalar o plugin e fazer o primeiro índice
+# Runbook 01 — Instalar o plugin e fazer o primeiro índice
 
 Do zero até uma busca funcionando no Claude Code, Hermes ou Antigravity (`agy`).
 
@@ -99,7 +99,7 @@ globs = ["**/*.py", "**/*.go", "**/*.js", "**/*.rs", "**/*.md"]
 EOF
 ```
 
-Cada `[[repos]]` vira a coleção `code.<name>`; documentação em tópicos usa `[[sources]]`, descrito no [runbook 01](01-code-ingest-and-remote-embeddings.md#2-registrar-uma-fonte).
+Cada `[[repos]]` vira a coleção `code.<name>`; documentação em tópicos usa `[[sources]]`, descrito no [runbook 02](02-operate-ingest.md#1-registrar-uma-fonte).
 
 ## 5. Indexar
 
@@ -134,7 +134,7 @@ hermes mcp list
 | `environment variable RECALL_EMBEDDING_API_KEY is not set` | chave ausente | conferir a linha no `~/.config/recall/.env` |
 | `refusing to talk to untrusted host` | `recall.toml` local aponta para um host que o global não declara | colocar o endereço em `RECALL_EMBEDDING_BASE_URL` no `.env` global ou em `RECALL_TRUSTED_HOSTS` |
 | `tree-sitter support for go is not installed` | CLI instalado sem o extra `code` | repetir o passo 1 com `recall[code]` |
-| `another process (recall-mcp?) has the embedded Qdrant store open` | o store embutido abre em um processo por vez | fechar o outro processo ou usar Qdrant servidor (runbook 01) |
+| `another process (recall-mcp?) has the embedded Qdrant store open` | o store embutido abre em um processo por vez | fechar o outro processo ou usar Qdrant servidor ([runbook 04](04-qdrant-server.md)) |
 | `No results found.` | fonte ainda não indexada ou `--in` com nome errado | `recall collections list` e repetir o passo 5 |
 
-Outros erros de ingest e de embeddings remotos estão na tabela do [runbook 01](01-code-ingest-and-remote-embeddings.md#troubleshooting).
+Os demais erros estão nas tabelas dos runbooks [02 (ingest)](02-operate-ingest.md#troubleshooting), [03 (embeddings remotos)](03-remote-embeddings.md#troubleshooting) e [04 (Qdrant servidor)](04-qdrant-server.md#troubleshooting).
