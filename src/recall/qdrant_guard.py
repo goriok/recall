@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 import time
 from pathlib import Path
+from urllib.parse import urlparse
 
 import httpx
 import typer
@@ -15,12 +16,22 @@ console = Console(stderr=True)
 # always has a fallback regardless of the caller's CWD.
 _GLOBAL_COMPOSE_FILE = Path.home() / ".config" / "recall" / "docker-compose.yml"
 _HEALTH_TIMEOUT = 15  # seconds to wait for Qdrant to become ready
+_LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 
 
-def ensure_qdrant(qdrant_url: str) -> None:
-    """Ensure Qdrant is reachable, starting it via Docker Compose if needed."""
-    if _is_reachable(qdrant_url):
+def _can_autostart(url: str) -> bool:
+    parsed = urlparse(url)
+    return parsed.scheme == "http" and parsed.hostname in _LOCAL_HOSTS
+
+
+def ensure_qdrant(qdrant_url: str, api_key: str | None = None) -> None:
+    """Ensure Qdrant is reachable, starting it via Docker Compose only for a local http host."""
+    if _is_reachable(qdrant_url, api_key):
         return
+
+    if not _can_autostart(qdrant_url):
+        console.print(f"[red]Error:[/red] Qdrant at {qdrant_url} is not reachable.")
+        raise typer.Exit(1)
 
     console.print("[dim]Qdrant not running — starting via Docker Compose...[/dim]")
 
@@ -45,25 +56,26 @@ def ensure_qdrant(qdrant_url: str) -> None:
         console.print(f"[red]Error:[/red] Failed to start Qdrant:\n{e.stderr.decode()}")
         raise typer.Exit(1)
 
-    if not _wait_until_ready(qdrant_url):
+    if not _wait_until_ready(qdrant_url, api_key):
         console.print("[red]Error:[/red] Qdrant started but did not become ready in time.")
         raise typer.Exit(1)
 
     console.print("[green]✓[/green] Qdrant ready.")
 
 
-def _is_reachable(url: str) -> bool:
+def _is_reachable(url: str, api_key: str | None = None) -> bool:
+    headers = {"api-key": api_key} if api_key else {}
     try:
-        r = httpx.get(f"{url}/healthz", timeout=2.0)
+        r = httpx.get(f"{url}/healthz", headers=headers, timeout=2.0)
         return r.status_code == 200
     except Exception:
         return False
 
 
-def _wait_until_ready(url: str, timeout: int = _HEALTH_TIMEOUT) -> bool:
+def _wait_until_ready(url: str, api_key: str | None = None, timeout: int = _HEALTH_TIMEOUT) -> bool:
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
-        if _is_reachable(url):
+        if _is_reachable(url, api_key):
             return True
         time.sleep(0.5)
     return False

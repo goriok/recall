@@ -7,6 +7,7 @@ from rich.table import Table
 
 from recall.adapters.qdrant_vector_store import QdrantVectorStore
 from recall.config import find_config, load_config, ConfigError
+from recall.meta import META_COLLECTION, delete_meta
 from recall.qdrant_guard import ensure_qdrant
 
 console = Console()
@@ -21,7 +22,7 @@ def collections_list():
         raise typer.Exit(1)
 
     if config.qdrant.host is not None:
-        ensure_qdrant(config.qdrant.url)
+        ensure_qdrant(config.qdrant.url, config.qdrant.api_key())
     vector_store = QdrantVectorStore(config.qdrant)
 
     try:
@@ -37,7 +38,7 @@ def collections_list():
     table.add_column("Collection", style="bold")
     table.add_column("Vectors", justify="right")
 
-    for col in sorted(cols, key=lambda c: c.name):
+    for col in sorted((c for c in cols if c.name != META_COLLECTION), key=lambda c: c.name):
         table.add_row(col.name, str(col.points_count))
 
     console.print(table)
@@ -60,12 +61,12 @@ def collections_drop(
         raise typer.Exit(1)
 
     if config.qdrant.host is not None:
-        ensure_qdrant(config.qdrant.url)
+        ensure_qdrant(config.qdrant.url, config.qdrant.api_key())
     vector_store = QdrantVectorStore(config.qdrant)
 
     try:
         if all_collections:
-            targets = [c.name for c in vector_store.list_collections()]
+            targets = [c.name for c in vector_store.list_collections() if c.name != META_COLLECTION]
             if not targets:
                 console.print("[dim]No collections to drop.[/dim]")
                 return
@@ -83,5 +84,9 @@ def collections_drop(
         for col in targets:
             vector_store.delete_collection(col)
             console.print(f"[red]✗[/red] dropped: {col}")
+        if all_collections:
+            vector_store.delete_collection(META_COLLECTION)
+        else:
+            delete_meta(vector_store, name)
     finally:
         vector_store.close()
