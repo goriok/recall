@@ -93,6 +93,7 @@ def _code_items(text: str, rel: str, project: ProjectConfig, graph: GraphIndex |
         max_chars=project.max_chunk_chars,
         window_lines=project.window_lines,
         window_overlap=project.window_overlap,
+        path_labels=project.path_labels,
     )
     items = []
     for c in chunks:

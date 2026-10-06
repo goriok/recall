@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from recall.config import Config, QdrantConfig, EmbeddingConfig, ProjectConfig
+from recall import indexer as indexer_module
 from recall.indexer import index_project
 from tests.fakes import FakeEmbeddingProvider, FakeVectorStore
 
@@ -429,3 +430,30 @@ def test_meta_records_file_count_and_ingest_time(tmp_path):
     meta = read_meta(store, "repo.topic")
     assert meta["files"] == 2
     assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\+00:00", meta["indexed_at"])
+
+
+def test_yaml_files_are_chunked_by_key_and_receive_path_labels(tmp_path, monkeypatch):
+    monkeypatch.setattr("recall.indexer.build_graph", lambda *a, **k: None)
+    chart = tmp_path / "prod" / "ne1" / "service" / "vpc" / "vpc-api"
+    chart.mkdir(parents=True)
+    (chart / "values.yaml").write_text("image:\n  tag: abc\n")
+    seen = {}
+    real = indexer_module.chunk_code
+
+    def spy(*args, **kwargs):
+        seen.update(kwargs)
+        return real(*args, **kwargs)
+
+    monkeypatch.setattr("recall.indexer.chunk_code", spy)
+    project = ProjectConfig(
+        name="iac", path=str(tmp_path), collection="code.iac", kind="code", repo_name="iac",
+        repo_root=str(tmp_path), globs=["**/values.yaml"],
+        path_labels=["{env}/{region}/service/{product}/{chart}/*"],
+    )
+    store = FakeVectorStore()
+
+    _index(project, store)
+
+    assert seen["path_labels"] == project.path_labels
+    payload = _payloads(store, "code.iac")[0]
+    assert (payload["kind"], payload["symbol_name"]) == ("yaml_key", "image")

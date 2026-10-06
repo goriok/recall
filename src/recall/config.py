@@ -119,6 +119,7 @@ class ProjectConfig:
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
     window_lines: int = 60
     window_overlap: int = 10
+    path_labels: list[str] = field(default_factory=list)
     graphify: GraphifyConfig = field(default_factory=GraphifyConfig)
     embedding: EmbeddingConfig | None = None
 
@@ -170,6 +171,7 @@ class RepoConfig:
     max_file_bytes: int = DEFAULT_MAX_FILE_BYTES
     window_lines: int = 60
     window_overlap: int = 10
+    path_labels: list[str] = field(default_factory=list)
     graphify: GraphifyConfig = field(default_factory=GraphifyConfig)
     embedding: EmbeddingConfig | None = None
 
@@ -192,6 +194,7 @@ class RepoConfig:
             max_file_bytes=self.max_file_bytes,
             window_lines=self.window_lines,
             window_overlap=self.window_overlap,
+            path_labels=list(self.path_labels),
             graphify=self.graphify,
             embedding=self.embedding,
         )
@@ -538,6 +541,7 @@ def load_config(config_path: Path) -> Config:
             max_file_bytes=r.get("max_file_bytes", DEFAULT_MAX_FILE_BYTES),
             window_lines=r.get("window_lines", 60),
             window_overlap=r.get("window_overlap", 10),
+            path_labels=list(r.get("path_labels", [])),
             graphify=_parse_graphify(r.get("graphify")),
             embedding=override(r),
         )

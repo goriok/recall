@@ -6,6 +6,8 @@ import logging
 import os
 from dataclasses import dataclass
 
+from recall.path_labels import path_labels as _path_labels
+from recall.yaml_chunker import yaml_spans
 from recall.chunk_spans import Span as _Span, leftover as _leftover, module_spans as _module_spans
 from recall.treesitter_chunker import treesitter_spans
 
@@ -131,6 +133,7 @@ def chunk_code(
     max_chars: int,
     window_lines: int = 60,
     window_overlap: int = 10,
+    path_labels: list[str] | None = None,
 ) -> list[CodeChunk]:
     lines = text.splitlines()
     if not any(line.strip() for line in lines):
@@ -142,11 +145,15 @@ def chunk_code(
             spans = _chunk_python(text)
         except (SyntaxError, ValueError):
             logger.warning("could not parse %s as Python — falling back to line windows", file_path)
+    elif file_path.endswith((".yaml", ".yml")):
+        spans = yaml_spans(text, max_chars)
     else:
         spans = treesitter_spans(text, os.path.splitext(file_path)[1].lower())
     if spans is None:
         spans = _window_spans(lines, window_lines, window_overlap)
 
+    labels = _path_labels(file_path, path_labels)
+    prefix = "# " + " ".join(f"{k}={v}" for k, v in labels.items()) + "\n" if labels else ""
     chunks: list[CodeChunk] = []
     seen: dict[tuple[str, str], int] = {}
     for span in spans:
@@ -165,7 +172,7 @@ def chunk_code(
                 CodeChunk(
                     id=chunk_id,
                     text=body,
-                    embed_text=f"{header}\n\n{body}",
+                    embed_text=f"{prefix}{header}\n\n{body}",
                     file_path=file_path,
                     start_line=piece.start,
                     end_line=piece.end,

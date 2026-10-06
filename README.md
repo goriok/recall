@@ -79,7 +79,7 @@ Qdrant runs embedded — an on-disk store at `~/.local/share/recall/qdrant` by d
 
 - **Auto-discover projects** — point at a `~/sources` root; every subdir with `.md` files becomes a searchable collection
 - **Explicit projects** — override path, collection name, and glob per project
-- **Code repos** — `[[repos]]` index source code: Python by function/method/class (`ast`); Go, JavaScript and Rust by symbol via tree-sitter (optional `recall[code]` extra); other languages by overlapping line windows. Each chunk has `file_path`, `start_line`, `end_line`, `symbol_name`; doc comments, JSDoc and Rust attributes stay with the symbol they document
+- **Code repos** — `[[repos]]` index source code: Python by function/method/class (`ast`); Go, JavaScript and Rust by symbol via tree-sitter (optional `recall[code]` extra); YAML by key path (`base-webapp.image`, stdlib scanner, optional `path_labels` prefix such as `env=prod region=ne1` for multi-environment IaC); other languages by overlapping line windows. Each chunk has `file_path`, `start_line`, `end_line`, `symbol_name`; doc comments, JSDoc and Rust attributes stay with the symbol they document
 - **Graphify enrichment (optional)** — `community_name`, `is_god_node` and `related_symbols` per chunk, no LLM calls
 - **Line-accurate docs** — Markdown chunks record their line span and heading breadcrumb; headings inside fenced code are ignored
 - **MCP server** — `recall-mcp` exposes `search_docs`, `search_code` and `explain_architecture` over stdio

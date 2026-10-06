@@ -41,6 +41,20 @@ globs = ["**/*.py", "**/*.go", "**/*.ts", "**/*.md"]
 enabled = true
 ```
 
+Repos de IaC (YAML de Helm/ArgoCD) usam o chunker por chave e `path_labels`, que prefixam o caminho como `env=… region=…` no embedding; o primeiro template que casa vale:
+
+```toml
+[[repos]]
+name = "iac"
+root = "~/sources/acme/iac"
+globs = ["**/Chart.yaml", "**/values.yaml"]
+path_exclude = [".git", "templates"]
+path_labels = [
+  "{env}/{region}/dc/{dc}/override/{product}/{chart}/*",
+  "{env}/{region}/service/{product}/{chart}/*",
+]
+```
+
 Documentação em Markdown usa `[[sources]]`, com uma coleção por subpasta de `topics/`:
 
 ```toml

@@ -527,3 +527,15 @@ def test_openai_provider_without_api_key_env_gets_the_default_name(env_home, tmp
     )
 
     assert load_config(tmp_path / "recall.toml").embedding.api_key_env == DEFAULT_API_KEY_ENV
+
+
+def test_repo_path_labels_are_parsed_and_forwarded_to_the_code_project(tmp_path):
+    cfg = _write(
+        tmp_path,
+        '[[repos]]\nname = "iac"\nroot = "/iac"\npath_labels = ["{env}/{region}/service/{product}/{chart}/*"]\n\n'
+        '[[repos]]\nname = "plain"\nroot = "/plain"\n',
+    )
+    iac, plain = cfg.repos
+    assert iac.path_labels == ["{env}/{region}/service/{product}/{chart}/*"]
+    assert iac.as_project().path_labels == iac.path_labels
+    assert plain.path_labels == []
